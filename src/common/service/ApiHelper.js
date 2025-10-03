@@ -1,5 +1,5 @@
 import axios from "axios"
-let Url = "http://localhost:8880"
+let Url = process.env.REACT_APP_API_URL
 // let Url = "http://10.223.222.176:8880"
 // let Url = "https://kensdrivebackend-5dp1.onrender.com"
 export const Apihelper = {
