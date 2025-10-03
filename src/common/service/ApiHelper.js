@@ -1,8 +1,11 @@
 import axios from "axios"
 let Url = "https://kensdrive.co.in/api"
+    console.log(Url)
+
 // let Url = "http://10.223.222.176:8880"
 // let Url = "https://kensdrivebackend-5dp1.onrender.com"
 export const Apihelper = {
+    console.log(Url)
     Register: (data) => {
         return axios.post(Url + "/user/register", data)
     },
