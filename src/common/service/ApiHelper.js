@@ -1,5 +1,5 @@
 import axios from "axios"
-const Url = process.env.REACT_APP_API_URL;
+const Url = "https://kensdrive.co.in/api";
     console.log(Url)
 
 // let Url = "http://10.223.222.176:8880"
