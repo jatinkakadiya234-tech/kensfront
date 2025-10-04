@@ -143,7 +143,7 @@ const RegisterForm = () => {
         >
           <Box
             component="img"
-            src="./src/assets/Kensdrive logo.png"
+            src="https://idr01.zata.ai/kenskensdrive/thumbnails/1759582246304-627777139.png"
             alt="CloudDrive"
             sx={{
               height: 50,

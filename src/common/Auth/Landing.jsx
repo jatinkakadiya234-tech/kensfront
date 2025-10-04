@@ -103,7 +103,7 @@ const Landing = () => {
             <Box sx={{ display: "flex", alignItems: "center", gap: 2, mb: 3, width: "100%", justifyContent: { xs: "center", md: "flex-start" } }}>
               <Box
                 component="img"
-                src="./src/assets/Kensdrive logo.png"
+                src="https://idr01.zata.ai/kenskensdrive/thumbnails/1759582246304-627777139.png"
                 alt="KensDrive"
                 sx={{ height: 48, filter: "brightness(0) invert(1)" }}
               />
