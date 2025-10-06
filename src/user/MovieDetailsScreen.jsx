@@ -3,7 +3,6 @@ import { FaLock, FaExpand, FaCompress } from 'react-icons/fa';
 import { FaUnlock } from "react-icons/fa6";
 import { useParams, useNavigate } from 'react-router-dom';
 
-
 export default function MovieDetailsScreen() {
   const [locked, setLocked] = useState(false);
   const [isFullscreen, setIsFullscreen] = useState(false);
@@ -13,15 +12,19 @@ export default function MovieDetailsScreen() {
   const videoRef = useRef(null);
   const containerRef = useRef(null);
   const navigate = useNavigate();
-  const url = useParams()
+  const url = useParams();
+
   // Dummy movie details for demonstration
   const movieDetails = {
-    name: 'Movie Name',
-    streamingUrl: 'https://videos.pexels.com/video-files/19022223/19022223-uhd_2560_1440_60fps.mp4',
+    title: "Movie Title",
+    poster: "https://via.placeholder.com/500x750/37353E/FFFFFF?text=No+Poster+Available",
+    description: "This is a movie description that would normally appear here.",
+    year: "2024",
+    rating: "PG-13"
   };
 
   // Get video URL from query param if present
-  let videoUrl = movieDetails.streamingUrl;
+  let videoUrl = "";
   try {
     const params = new URLSearchParams(window.location.search);
     const videoParam = params.get('video');
@@ -29,6 +32,9 @@ export default function MovieDetailsScreen() {
       videoUrl = videoParam;
     }
   } catch { }
+
+  // Check if we have a valid video URL
+  const hasVideo = Boolean(videoUrl);
 
   // Fullscreen handlers
   const handleFullscreen = () => {
@@ -89,7 +95,7 @@ export default function MovieDetailsScreen() {
 
   // Auto-attempt on first user gesture for mobile
   React.useEffect(() => {
-    if (!isSmallScreen()) return;
+    if (!isSmallScreen() || !hasVideo) return;
     const container = containerRef.current;
     if (!container) return;
 
@@ -106,7 +112,8 @@ export default function MovieDetailsScreen() {
       container.removeEventListener('touchstart', onFirstInteract);
       container.removeEventListener('click', onFirstInteract);
     };
-  }, [requestedMobileFullscreen]);
+  }, [requestedMobileFullscreen, hasVideo]);
+
   React.useEffect(() => {
     const handleFullscreenChange = () => {
       setIsFullscreen(!!document.fullscreenElement);
@@ -142,10 +149,10 @@ export default function MovieDetailsScreen() {
   }, []);
 
   React.useEffect(() => {
-    if (isPremium) {
+    if (isPremium && hasVideo) {
       // Show premium popup immediately for premium users
       setShowPopup(true);
-    } else if (videoRef.current) {
+    } else if (videoRef.current && hasVideo) {
       videoRef.current.currentTime = 0;
       videoRef.current.play();
       const timer = setTimeout(() => {
@@ -154,122 +161,129 @@ export default function MovieDetailsScreen() {
       }, 15000);
       return () => clearTimeout(timer);
     }
-  }, [isPremium, videoUrl]);
+  }, [isPremium, videoUrl, hasVideo]);
 
   return (
     <div
       ref={containerRef}
-      className=" relative w-[100%] h-screen overflow-hidden bg-[#37353E] flex flex-col justify-center items-center "
+      className="relative w-[100%] h-screen overflow-hidden bg-[#37353E] flex flex-col justify-center items-center"
       style={{ padding: 0, margin: 0 }}
     >
-      {/* Movie Name */}
-      {/* Video Player */}
-      <div className="relative w-[100%] h-full flex justify-center items-center  ">
-        <video
-          ref={videoRef}
-          src={videoUrl}
-          className="w-full h-full object-cover"
-          controls={!locked}
-          autoPlay
-          playsInline={false}
-          onPlay={() => {
-            if (isSmallScreen() && !requestedMobileFullscreen) {
-              requestMobileFullscreenAndLandscape();
-            }
-          }}
-          controlsList={isPremium ? "nofullscreen download" : "nofullscreen nodownload"}
-        // style={{ minHeight: '100vh', minWidth: '100vw', background: 'black' }}
-        />
-        {/* Popup for premium users */}
-        {/* {showPopup && isPremium && (
-          <div className="fixed inset-0 z-50 flex items-center justify-centerbg-[#0f2027] bg-opacity-90">
-            <div className="bg-gradient-to-br from-[#2c5364] to-[#203a43] rounded-lg shadow-lg p-8 max-w-sm w-full text-center border border-[#715A5A]">
-              <h2 className="text-xl font-bold mb-4 text-white">🎉 Premium Access</h2>
-              <p className="mb-6 text-[#d3dad9]">Welcome! You have premium access to watch unlimited content without restrictions.</p>
-              <button
-                className="bg-[#715A5A] text-white px-6 py-2 rounded hover:bg-[#44444E] font-semibold transition-colors"
-                onClick={() => {
-                  setShowPopup(false);
-                }}
-              >
-                Start Watching
-              </button>
+      {/* Movie Poster when no video available */}
+      {!hasVideo && (
+        <div className="relative w-full h-full flex flex-col justify-center items-center bg-[#37353E] p-4">
+          {/* Movie Poster */}
+          <div className="max-w-md w-full flex flex-col items-center">
+            
+            
+            {/* Movie Information */}
+            <div className="text-center text-white">
+             
+            
+              {/* No Video Available Message */}
+              <div className="bg-[#2c5364] rounded-lg p-4 border border-[#4facfe]">
+                <div className="flex items-center justify-center mb-2">
+                 <img
+                    src="https://cdn-icons-png.flaticon.com/512/1661/1661901.png"
+                    alt="No Video"
+                    className="w-12 h-12"
+                  />
+                </div>
+                <h3 className="text-xl font-semibold mb-2">Video Not Available</h3>
+                <p className="text-sm text-gray-300">
+                  The video content for this movie is currently unavailable. Please check back later or browse other movies.
+                </p>
+              </div>
             </div>
           </div>
-        )} */}
-        
-        {/* Popup for non-premium users after 15s */}
-       {showPopup && !isPremium && (
-  <div className="fixed inset-0 z-50 flex items-center justify-center bg-[#0f2027] bg-opacity-95">
-    <div className="bg-gradient-to-br from-[#2c5364] to-[#203a43] rounded-xl shadow-2xl p-8 max-w-sm w-full text-center border-2 border-[#4facfe]">
-      <div className="mb-4 flex justify-center">
-        <div className="w-16 h-16 bg-gradient-to-r from-[#4facfe] to-[#00f2fe] rounded-full flex items-center justify-center">
-          <svg xmlns="http://www.w3.org/2000/svg" className="h-10 w-10 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
-          </svg>
         </div>
-      </div>
-      <h2 className="text-2xl font-bold mb-4 text-white">Premium Upgrade Required</h2>
-      <p className="mb-6 text-[#c3dce3]">This is a preview feature. Upgrade to premium to access the full content.</p>
-      <button
-        className="bg-gradient-to-r from-[#4facfe] to-[#00f2fe] text-white px-8 py-3 rounded-full font-semibold transition-all hover:scale-105 hover:shadow-lg transform duration-300"
-        onClick={() => {
-          setShowPopup(false);
-          navigate('/subscription');
-        }}
-      >
-        Upgrade Now
-      </button>
-    
-    </div>
-  </div>
-)}
-        {/* Center Lock Button (only when locked) */}
-        {locked && (
-          <button
-            onClick={() => setLocked(false)}
-            className="absolute z-40 flex items-center justify-center  top-[80%] left-[1%] bg-[#37353E]/70 text-white p-2 rounded-full hover:bg-[#37353E]/90 focus:outline-none"
-            style={{
-              // top: '90%',
-              // left: '3%',
-              // transform: 'translate(-20%, -20%)',
+      )}
 
-              cursor: 'pointer',
+      {/* Video Player when video is available */}
+      {hasVideo && (
+        <div className="relative w-[100%] h-full flex justify-center items-center">
+          <video
+            ref={videoRef}
+            src={videoUrl}
+            className="w-full h-full object-cover"
+            controls={!locked}
+            autoPlay
+            playsInline={false}
+            onPlay={() => {
+              if (isSmallScreen() && !requestedMobileFullscreen) {
+                requestMobileFullscreenAndLandscape();
+              }
             }}
-            title="Unlock"
-          >
-            {/* <FaUnlock size={20} color="green" /> */}
-            <FaLock size={20} color="white" />
-          </button>
-        )}
-        {/* Fullscreen Button (top right) */}
-        <button
-          onClick={handleFullscreen}
-
-          className="absolute top-[80%] left-16 bg-[#37353E]/70 text-white p-2 rounded-full hover:bg-[#37353E]/90 focus:outline-none z-10"
-          title={isFullscreen ? 'Exit Fullscreen' : 'Fullscreen'}
-        >
-          {isFullscreen ? <FaCompress size={20} /> : <FaExpand size={20} />}
-        </button>
-        {/* Lock Button (top right, only when unlocked) */}
-        {!locked && (
+            controlsList={isPremium ? "nofullscreen download" : "nofullscreen nodownload"}
+          />
+          
+          {/* Popup for non-premium users after 15s */}
+          {showPopup && !isPremium && (
+            <div className="fixed inset-0 z-50 flex items-center justify-center bg-[#0f2027] bg-opacity-95">
+              <div className="bg-gradient-to-br from-[#2c5364] to-[#203a43] rounded-xl shadow-2xl p-8 max-w-sm w-full text-center border-2 border-[#4facfe]">
+                <div className="mb-4 flex justify-center">
+                  <div className="w-16 h-16 bg-gradient-to-r from-[#4facfe] to-[#00f2fe] rounded-full flex items-center justify-center">
+                    <svg xmlns="http://www.w3.org/2000/svg" className="h-10 w-10 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
+                    </svg>
+                  </div>
+                </div>
+                <h2 className="text-2xl font-bold mb-4 text-white">Premium Upgrade Required</h2>
+                <p className="mb-6 text-[#c3dce3]">This is a preview feature. Upgrade to premium to access the full content.</p>
+                <button
+                  className="bg-gradient-to-r from-[#4facfe] to-[#00f2fe] text-white px-8 py-3 rounded-full font-semibold transition-all hover:scale-105 hover:shadow-lg transform duration-300"
+                  onClick={() => {
+                    setShowPopup(false);
+                    navigate('/subscription');
+                  }}
+                >
+                  Upgrade Now
+                </button>
+              </div>
+            </div>
+          )}
+          
+          {/* Center Lock Button (only when locked) */}
+          {locked && (
+            <button
+              onClick={() => setLocked(false)}
+              className="absolute z-40 flex items-center justify-center top-[80%] left-[1%] bg-[#37353E]/70 text-white p-2 rounded-full hover:bg-[#37353E]/90 focus:outline-none"
+              title="Unlock"
+            >
+              <FaLock size={20} color="white" />
+            </button>
+          )}
+          
+          {/* Fullscreen Button (top right) */}
           <button
-            onClick={() => setLocked(true)}
-            className="absolute top-[80%] left-[1%] bg-[#37353E]/70 text-white p-2 rounded-full hover:bg-[#37353E]/90 focus:outline-none z-10"
-            title="Lock"
+            onClick={handleFullscreen}
+            className="absolute top-[80%] left-16 bg-[#37353E]/70 text-white p-2 rounded-full hover:bg-[#37353E]/90 focus:outline-none z-10"
+            title={isFullscreen ? 'Exit Fullscreen' : 'Fullscreen'}
           >
-            <FaUnlock size={20} color="silver" />
+            {isFullscreen ? <FaCompress size={20} /> : <FaExpand size={20} />}
           </button>
-        )}
-        {/* Overlay to block interaction when locked */}
-        {locked && (
-          <div
-            className="absolute inset-0 z-30"
-            style={{ pointerEvents: 'auto', background: 'transparent' }}
-            onClick={e => e.stopPropagation()}
-          ></div>
-        )}
-      </div>
+          
+          {/* Lock Button (top right, only when unlocked) */}
+          {!locked && (
+            <button
+              onClick={() => setLocked(true)}
+              className="absolute top-[80%] left-[1%] bg-[#37353E]/70 text-white p-2 rounded-full hover:bg-[#37353E]/90 focus:outline-none z-10"
+              title="Lock"
+            >
+              <FaUnlock size={20} color="silver" />
+            </button>
+          )}
+          
+          {/* Overlay to block interaction when locked */}
+          {locked && (
+            <div
+              className="absolute inset-0 z-30"
+              style={{ pointerEvents: 'auto', background: 'transparent' }}
+              onClick={e => e.stopPropagation()}
+            ></div>
+          )}
+        </div>
+      )}
     </div>
   );
-} 
+}
