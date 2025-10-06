@@ -79,6 +79,17 @@ export default function DashboardLayout({ children }) {
                                 Analytics
                             </Link>
                         </li>
+                        <li className={getNavLinkClass("/webseries")} onClick={() => setSidebarOpen(false)}>
+                            <Link to="/webseries" className="flex items-center px-3 py-2 rounded text-sm font-medium tracking-wide uppercase"
+                                style={{
+                                    background: location.pathname === "/webseries" ? "linear-gradient(45deg, #4facfe, #00f2fe)" : "transparent",
+                                    color: location.pathname === "/webseries" ? "white" : undefined
+                                }}
+                            >
+                                <VideoLibraryIcon className="mr-3" fontSize="small" />
+                                Web Series
+                            </Link>
+                        </li>
                         <li className={getNavLinkClass("/movies")} onClick={() => setSidebarOpen(false)}>
                             <Link to="/movies" className="flex items-center px-3 py-2 rounded text-base font-semibold uppercase"
                                 style={{

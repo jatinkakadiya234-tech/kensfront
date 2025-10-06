@@ -4,6 +4,7 @@ import {
   Typography,
   Paper,
   Button,
+  CircularProgress,
   TextField,
   Card,
   CardContent,
@@ -44,15 +45,21 @@ import {
   ContentCopy as CopyIcon,
   ExpandMore as ExpandMoreIcon,
   Visibility as ViewIcon,
-  Movie as MovieIcon
+  Movie as MovieIcon,
+  Check as CheckIcon
 } from '@mui/icons-material';
 import { Apihelper } from '../../common/service/ApiHelper';
 import { toast } from 'react-toastify';
+import TrophySpin from '../../common/Loader/TrophySpin';
 
 const WebSeriesManagement = () => {
   // State management
   const [series, setSeries] = useState([]);
   const [loading, setLoading] = useState(false);
+  const [creatingSeries, setCreatingSeries] = useState(false);
+  const [addingSeason, setAddingSeason] = useState(false);
+  const [addingEpisode, setAddingEpisode] = useState(false);
+  const [refreshing, setRefreshing] = useState(false);
   const [selectedSeries, setSelectedSeries] = useState(null);
   const [expandedSeries, setExpandedSeries] = useState({});
   
@@ -69,7 +76,38 @@ const WebSeriesManagement = () => {
   const [newSeriesTitle, setNewSeriesTitle] = useState('');
   const [newSeasonNumber, setNewSeasonNumber] = useState('');
   const [newEpisodeNumber, setNewEpisodeNumber] = useState('');
-  const [newVideoUrl, setNewVideoUrl] = useState('');
+  const [video720, setVideo720] = useState(null);
+  const [video1080, setVideo1080] = useState(null);
+
+  const WATCH_BASE = 'https://kensdrive.co.in/watch?video=';
+
+  const getQualitySourceUrl = (episode, quality) => {
+    // Backend may store either episode.videoUrl (string) or episode.qualities { '720p': url, '1080p': url }
+    if (episode && episode.qualities && episode.qualities[quality]) return episode.qualities[quality];
+    if (episode && episode.videoUrl) return episode.videoUrl; // fallback for older data
+    return '';
+  };
+
+  const [copiedKeys, setCopiedKeys] = useState({});
+  
+  // Fixed copy function
+  const handleCopy = async (text, key, successMsg = 'Copied!') => {
+    try {
+      await navigator.clipboard.writeText(text);
+      setCopiedKeys(prev => ({ ...prev, [key]: true }));
+      setTimeout(() => {
+        setCopiedKeys(prev => {
+          const newState = { ...prev };
+          delete newState[key];
+          return newState;
+        });
+      }, 2000);
+      toast.success(successMsg);
+    } catch (err) {
+      console.error('Copy failed:', err);
+      toast.error('Copy failed. Please try again.');
+    }
+  };
 
   // Load all series on component mount
   useEffect(() => {
@@ -92,6 +130,49 @@ const WebSeriesManagement = () => {
       ...prev,
       [seriesId]: !prev[seriesId]
     }));
+  };
+
+  // Delete handlers
+  const deleteSeries = async (seriesId) => {
+    try {
+      if (!window.confirm('Delete this series? This will remove all seasons and episodes.')) return;
+      setLoading(true);
+      await Apihelper.deleteWebSeries(seriesId);
+      toast.success('Series deleted');
+      await loadAllSeries();
+    } catch (e) {
+      toast.error(e?.response?.data?.message || 'Failed to delete series');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const deleteSeason = async (seriesId, seasonNumber) => {
+    try {
+      if (!window.confirm(`Delete Season ${seasonNumber}? All its episodes will be removed.`)) return;
+      setLoading(true);
+      await Apihelper.deleteSeason(seriesId, seasonNumber);
+      toast.success(`Season ${seasonNumber} deleted`);
+      await loadAllSeries();
+    } catch (e) {
+      toast.error(e?.response?.data?.message || 'Failed to delete season');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const deleteEpisode = async (seriesId, seasonNumber, episodeNumber) => {
+    try {
+      if (!window.confirm(`Delete Episode ${episodeNumber} from Season ${seasonNumber}?`)) return;
+      setLoading(true);
+      await Apihelper.deleteEpisode(seriesId, seasonNumber, episodeNumber);
+      toast.success(`Episode ${episodeNumber} deleted`);
+      await loadAllSeries();
+    } catch (e) {
+      toast.error(e?.response?.data?.message || 'Failed to delete episode');
+    } finally {
+      setLoading(false);
+    }
   };
 
   // Step 1: Load All Web Series
@@ -117,6 +198,7 @@ const WebSeriesManagement = () => {
   // Step 2: Create New Web Series
   const createNewSeries = async () => {
     try {
+      setCreatingSeries(true);
       if (!newSeriesTitle.trim()) {
         toast.error('Please enter series title');
         return;
@@ -142,11 +224,15 @@ const WebSeriesManagement = () => {
       console.error('❌ Error creating series:', error);
       toast.error(error?.response?.data?.message || 'Failed to create series');
     }
+    finally {
+      setCreatingSeries(false);
+    }
   };
 
   // Step 3: Add Season to Series
   const addSeasonToSeries = async () => {
     try {
+      setAddingSeason(true);
       if (!selectedSeries || !newSeasonNumber) {
         toast.error('Please select series and enter season number');
         return;
@@ -175,35 +261,40 @@ const WebSeriesManagement = () => {
       console.error('❌ Error adding season:', error);
       toast.error(error?.response?.data?.message || 'Failed to add season');
     }
+    finally {
+      setAddingSeason(false);
+    }
   };
 
   // Step 4: Add Episode to Season
   const addEpisodeToSeason = async () => {
     try {
-      if (!selectedSeries || !newSeasonNumber || !newEpisodeNumber || !newVideoUrl) {
-        toast.error('Please fill all fields');
+      setAddingEpisode(true);
+      if (!selectedSeries || !newSeasonNumber || !newEpisodeNumber || !video720 || !video1080) {
+        toast.error('Please select series, season, episode number, and both 720p & 1080p files');
         return;
       }
 
-      console.log('🔄 Adding episode to season:', {
+      console.log('🔄 Adding episode to season with files:', {
         seriesId: selectedSeries._id,
         seasonNumber: parseInt(newSeasonNumber),
         episodeNumber: parseInt(newEpisodeNumber),
-        videoUrl: newVideoUrl
+        video720: video720?.name,
+        video1080: video1080?.name,
       });
       
-      const response = await Apihelper.addEpisodeToSeason(
-        selectedSeries._id,
-        parseInt(newSeasonNumber),
-        parseInt(newEpisodeNumber),
-        newVideoUrl
-      );
+      const response = await Apihelper.addEpisodeToSeason(selectedSeries._id, parseInt(newSeasonNumber), {
+        episodeNumber: parseInt(newEpisodeNumber),
+        video720,
+        video1080,
+      });
       
       console.log('✅ Episode added:', response.data);
       toast.success(`Episode ${newEpisodeNumber} added to Season ${newSeasonNumber}!`);
       
       setNewEpisodeNumber('');
-      setNewVideoUrl('');
+      setVideo720(null);
+      setVideo1080(null);
       setAddEpisodeDialog(false);
       
       // Reload the list
@@ -213,6 +304,33 @@ const WebSeriesManagement = () => {
       console.error('❌ Error adding episode:', error);
       toast.error(error?.response?.data?.message || 'Failed to add episode');
     }
+    finally {
+      setAddingEpisode(false);
+    }
+  };
+
+  // Improved file upload handlers
+  const handleFile720Change = (event) => {
+    const file = event.target.files?.[0];
+    if (file) {
+      setVideo720(file);
+    }
+  };
+
+  const handleFile1080Change = (event) => {
+    const file = event.target.files?.[0];
+    if (file) {
+      setVideo1080(file);
+    }
+  };
+
+  // Reset episode form
+  const resetEpisodeForm = () => {
+    setNewSeasonNumber('');
+    setNewEpisodeNumber('');
+    setVideo720(null);
+    setVideo1080(null);
+    setAddEpisodeDialog(false);
   };
 
   return (
@@ -230,14 +348,14 @@ const WebSeriesManagement = () => {
           }}
         >
           <Typography variant="h4" sx={{ color: 'white', fontWeight: 'bold', mb: { xs: 2, sm: 0 } }}>
-        Web Series Management
-      </Typography>
+            Web Series Management
+          </Typography>
 
           <Box sx={{ display: 'flex', gap: 2, flexWrap: 'wrap' }}>
-        <Button
-          variant="contained"
-          startIcon={<AddIcon />}
-          onClick={() => setCreateSeriesDialog(true)}
+            <Button
+              variant="contained"
+              startIcon={<AddIcon />}
+              onClick={() => setCreateSeriesDialog(true)}
               sx={{
                 background: 'linear-gradient(45deg, #4facfe, #00f2fe)',
                 boxShadow: '0 4px 15px rgba(79,172,254,0.3)',
@@ -246,14 +364,14 @@ const WebSeriesManagement = () => {
                 px: 3,
                 width: { xs: '100%', sm: 'auto' }
               }}
-        >
-          Create New Series
-        </Button>
-        
-        <Button
-          variant="outlined"
-          onClick={loadAllSeries}
-          disabled={loading}
+            >
+              Create New Series
+            </Button>
+            
+            <Button
+              variant="outlined"
+              onClick={async () => { setRefreshing(true); await loadAllSeries(); setRefreshing(false); }}
+              disabled={loading || refreshing}
               sx={{
                 borderColor: '#4facfe',
                 color: '#4facfe',
@@ -265,14 +383,24 @@ const WebSeriesManagement = () => {
                 px: 3,
                 width: { xs: '100%', sm: 'auto' }
               }}
-        >
-          {loading ? 'Loading...' : 'Refresh List'}
-        </Button>
+            >
+              {refreshing || loading ? (
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                  <CircularProgress size={16} sx={{ color: '#4facfe' }} />
+                  Loading...
+                </Box>
+              ) : 'Refresh List'}
+            </Button>
           </Box>
-      </Box>
+        </Box>
 
         {/* Series List in Table Format */}
-        <Box sx={{ width: '100%', overflowX: 'auto', mb: 3 }}>
+        <Box sx={{ width: '100%', overflowX: 'auto', mb: 3, position: 'relative' }}>
+          {loading && (
+            <Box sx={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 2, bgcolor: 'rgba(0,0,0,0.4)', borderRadius: 2 }}>
+              <TrophySpin color="#fff" size="large" text="Loading..." textColor="#fff" />
+            </Box>
+          )}
           <Paper sx={{ borderRadius: 2, minWidth: 600, background: 'rgba(255, 255, 255, 0.05)', backdropFilter: 'blur(20px)', border: '1px solid rgba(255, 255, 255, 0.1)' }}>
             <TableContainer>
               <Table size="small">
@@ -323,12 +451,12 @@ const WebSeriesManagement = () => {
                             </IconButton>
                             <Box>
                               <Typography variant="body2" sx={{ fontSize: { xs: 13, sm: 16 }, color: 'white' }}>
-                  {seriesItem.title}
-                </Typography>
+                                {seriesItem.title}
+                              </Typography>
                               <Typography variant="caption" sx={{ color: '#cbd5e1' }}>
                                 ID: {seriesItem._id.slice(-8)}
-                    </Typography>
-                  </Box>
+                              </Typography>
+                            </Box>
                           </Box>
                         </TableCell>
                         <TableCell align="center" sx={{ color: 'white', borderColor: '#333', px: { xs: 1, sm: 2 }, py: { xs: 1, sm: 2 }, fontSize: { xs: 12, sm: 14 } }}>
@@ -366,14 +494,14 @@ const WebSeriesManagement = () => {
                         </TableCell>
                         <TableCell align="center" sx={{ color: 'white', borderColor: '#333', px: { xs: 1, sm: 2 }, py: { xs: 1, sm: 2 }, fontSize: { xs: 12, sm: 14 } }}>
                           <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap', justifyContent: 'center' }}>
-                <Button
-                  size="small"
+                            <Button
+                              size="small"
                               variant="outlined"
                               startIcon={<AddSeasonIcon />}
-                  onClick={() => {
-                    setSelectedSeries(seriesItem);
-                    setAddSeasonDialog(true);
-                  }}
+                              onClick={() => {
+                                setSelectedSeries(seriesItem);
+                                setAddSeasonDialog(true);
+                              }}
                               sx={{ 
                                 fontSize: '0.7rem',
                                 borderColor: '#4facfe',
@@ -382,18 +510,18 @@ const WebSeriesManagement = () => {
                                   borderColor: '#00f2fe',
                                   backgroundColor: 'rgba(79,172,254,0.1)'
                                 }
-                  }}
-                >
-                  Add Season
-                </Button>
-                <Button
-                  size="small"
+                              }}
+                            >
+                              Add Season
+                            </Button>
+                            <Button
+                              size="small"
                               variant="outlined"
                               startIcon={<AddEpisodeIcon />}
-                  onClick={() => {
-                    setSelectedSeries(seriesItem);
-                    setAddEpisodeDialog(true);
-                  }}
+                              onClick={() => {
+                                setSelectedSeries(seriesItem);
+                                setAddEpisodeDialog(true);
+                              }}
                               sx={{ 
                                 fontSize: '0.7rem',
                                 borderColor: '#00f2fe',
@@ -402,10 +530,20 @@ const WebSeriesManagement = () => {
                                   borderColor: '#4facfe',
                                   backgroundColor: 'rgba(0,242,254,0.1)'
                                 }
-                  }}
-                >
-                  Add Episode
-                </Button>
+                              }}
+                            >
+                              Add Episode 
+                            </Button>
+                            <Button
+                              size="small"
+                              variant="outlined"
+                              color="error"
+                              startIcon={<DeleteIcon />}
+                              onClick={() => deleteSeries(seriesItem._id)}
+                              sx={{ fontSize: '0.7rem', borderColor: 'rgba(239,68,68,0.6)', color: '#ef4444', '&:hover': { borderColor: '#ef4444', backgroundColor: 'rgba(239,68,68,0.08)' } }}
+                            >
+                              Delete Series
+                            </Button>
                           </Box>
                         </TableCell>
                       </TableRow>
@@ -450,6 +588,11 @@ const WebSeriesManagement = () => {
                                       <Typography variant="subtitle1" sx={{ fontWeight: 'bold', color: 'white' }}>
                                         {season.episodes?.length || 0} Episodes
                                       </Typography>
+                                      <Box sx={{ marginLeft: 'auto' }}>
+                                        <Button size="small" color="error" variant="text" startIcon={<DeleteIcon />} onClick={() => deleteSeason(seriesItem._id, season.seasonNumber)}>
+                                          Delete Season
+                                        </Button>
+                                      </Box>
                                     </Box>
                                   </AccordionSummary>
                                   <AccordionDetails sx={{ backgroundColor: 'rgba(255, 255, 255, 0.02)' }}>
@@ -459,7 +602,7 @@ const WebSeriesManagement = () => {
                                           <TableHead>
                                             <TableRow>
                                               <TableCell sx={{ color: '#cbd5e1', fontWeight: 'bold', borderColor: 'rgba(255,255,255,0.1)' }}>Episode #</TableCell>
-                                              <TableCell sx={{ color: '#cbd5e1', fontWeight: 'bold', borderColor: 'rgba(255,255,255,0.1)' }}>Video URL</TableCell>
+                                              <TableCell sx={{ color: '#cbd5e1', fontWeight: 'bold', borderColor: 'rgba(255,255,255,0.1)' }}>Watch URLs</TableCell>
                                               <TableCell sx={{ color: '#cbd5e1', fontWeight: 'bold', borderColor: 'rgba(255,255,255,0.1)' }}>Quality</TableCell>
                                               <TableCell sx={{ color: '#cbd5e1', fontWeight: 'bold', borderColor: 'rgba(255,255,255,0.1)' }}>Actions</TableCell>
                                             </TableRow>
@@ -473,26 +616,98 @@ const WebSeriesManagement = () => {
                                                   </Typography>
                                                 </TableCell>
                                                 <TableCell sx={{ color: 'white', borderColor: '#333' }}>
-                                                  <Tooltip title={episode.videoUrl} arrow>
-                                                    <Typography 
-                                                      variant="caption" 
-                                                      sx={{ 
-                                                        fontFamily: 'monospace',
-                                                        backgroundColor: 'rgba(79,172,254,0.1)',
-                                                        color: '#4facfe',
-                                                        padding: '4px 8px',
-                                                        borderRadius: '4px',
-                                                        display: 'block',
-                                                        maxWidth: '300px',
-                                                        overflow: 'hidden',
-                                                        textOverflow: 'ellipsis',
-                                                        whiteSpace: 'nowrap',
-                                                        border: '1px solid rgba(79,172,254,0.3)'
-                                                      }}
-                                                    >
-                                                      {episode.videoUrl}
-                                                    </Typography>
-                                                  </Tooltip>
+                                                  {(() => {
+                                                    const source720 = getQualitySourceUrl(episode, '720p');
+                                                    const source1080 = getQualitySourceUrl(episode, '1080p');
+                                                    const watchUrl720 = WATCH_BASE + encodeURIComponent(source720 || '');
+                                                    const watchUrl1080 = WATCH_BASE + encodeURIComponent(source1080 || source720 || '');
+                                                    const copyKey720 = `${seriesItem._id}-${season.seasonNumber}-${episode.episodeNumber}-720`;
+                                                    const copyKey1080 = `${seriesItem._id}-${season.seasonNumber}-${episode.episodeNumber}-1080`;
+                                                    
+                                                    return (
+                                                      <Box sx={{ display: 'grid', gap: 1 }}>
+                                                        {/* 720p URL */}
+                                                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                                                          <Tooltip title={watchUrl720} arrow>
+                                                            <Typography 
+                                                              variant="caption" 
+                                                              sx={{ 
+                                                                fontFamily: 'monospace',
+                                                                backgroundColor: 'rgba(79,172,254,0.1)',
+                                                                color: '#4facfe',
+                                                                padding: '4px 8px',
+                                                                borderRadius: '4px',
+                                                                display: 'block',
+                                                                maxWidth: '300px',
+                                                                overflow: 'hidden',
+                                                                textOverflow: 'ellipsis',
+                                                                whiteSpace: 'nowrap',
+                                                                border: '1px solid rgba(79,172,254,0.3)',
+                                                                cursor: 'pointer',
+                                                                userSelect: 'all'
+                                                              }}
+                                                              onClick={() => handleCopy(watchUrl720, copyKey720, '720p URL copied!')}
+                                                            >
+                                                              720p: {watchUrl720}
+                                                            </Typography>
+                                                          </Tooltip>
+                                                          <IconButton 
+                                                            size="small" 
+                                                            onClick={() => handleCopy(watchUrl720, copyKey720, '720p URL copied!')}
+                                                            sx={{ 
+                                                              color: copiedKeys[copyKey720] ? '#10b981' : '#4facfe',
+                                                              border: '1px solid',
+                                                              borderColor: copiedKeys[copyKey720] ? '#10b981' : '#4facfe',
+                                                              width: 32,
+                                                              height: 32
+                                                            }}
+                                                          >
+                                                            {copiedKeys[copyKey720] ? <CheckIcon fontSize="small" /> : <CopyIcon fontSize="small" />}
+                                                          </IconButton>
+                                                        </Box>
+                                                        
+                                                        {/* 1080p URL */}
+                                                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                                                          <Tooltip title={watchUrl1080} arrow>
+                                                            <Typography 
+                                                              variant="caption" 
+                                                              sx={{ 
+                                                                fontFamily: 'monospace',
+                                                                backgroundColor: 'rgba(79,172,254,0.1)',
+                                                                color: '#4facfe',
+                                                                padding: '4px 8px',
+                                                                borderRadius: '4px',
+                                                                display: 'block',
+                                                                maxWidth: '300px',
+                                                                overflow: 'hidden',
+                                                                textOverflow: 'ellipsis',
+                                                                whiteSpace: 'nowrap',
+                                                                border: '1px solid rgba(79,172,254,0.3)',
+                                                                cursor: 'pointer',
+                                                                userSelect: 'all'
+                                                              }}
+                                                              onClick={() => handleCopy(watchUrl1080, copyKey1080, '1080p URL copied!')}
+                                                            >
+                                                              1080p: {watchUrl1080}
+                                                            </Typography>
+                                                          </Tooltip>
+                                                          <IconButton 
+                                                            size="small" 
+                                                            onClick={() => handleCopy(watchUrl1080, copyKey1080, '1080p URL copied!')}
+                                                            sx={{ 
+                                                              color: copiedKeys[copyKey1080] ? '#10b981' : '#4facfe',
+                                                              border: '1px solid',
+                                                              borderColor: copiedKeys[copyKey1080] ? '#10b981' : '#4facfe',
+                                                              width: 32,
+                                                              height: 32
+                                                            }}
+                                                          >
+                                                            {copiedKeys[copyKey1080] ? <CheckIcon fontSize="small" /> : <CopyIcon fontSize="small" />}
+                                                          </IconButton>
+                                                        </Box>
+                                                      </Box>
+                                                    );
+                                                  })()}
                                                 </TableCell>
                                                 <TableCell sx={{ color: 'white', borderColor: '#333' }}>
                                                   <Chip 
@@ -510,36 +725,13 @@ const WebSeriesManagement = () => {
                                                   <Box sx={{ display: 'flex', gap: 1 }}>
                                                     <Button
                                                       size="small"
-                                                      variant="contained"
-                                                      startIcon={<PlayIcon />}
-                                                      onClick={() => window.open(episode.videoUrl, '_blank')}
-                                                      sx={{ 
-                                                        fontSize: '0.7rem',
-                                                        backgroundColor: '#4facfe',
-                                                        '&:hover': { backgroundColor: '#00f2fe' }
-                                                      }}
-                                                    >
-                                                      Play
-                                                    </Button>
-                                                    <Button
-                                                      size="small"
+                                                      color="error"
                                                       variant="outlined"
-                                                      startIcon={<CopyIcon />}
-                                                      onClick={() => {
-                                                        navigator.clipboard.writeText(episode.videoUrl);
-                                                        toast.success('Video URL copied to clipboard!');
-                                                      }}
-                                                      sx={{ 
-                                                        fontSize: '0.7rem',
-                                                        borderColor: '#4facfe',
-                                                        color: '#4facfe',
-                                                        '&:hover': {
-                                                          borderColor: '#00f2fe',
-                                                          backgroundColor: 'rgba(79,172,254,0.1)'
-                                                        }
-                                                      }}
+                                                      startIcon={<DeleteIcon />}
+                                                      onClick={() => deleteEpisode(seriesItem._id, season.seasonNumber, episode.episodeNumber)}
+                                                      sx={{ fontSize: '0.7rem', borderColor: 'rgba(239,68,68,0.6)', color: '#ef4444', '&:hover': { borderColor: '#ef4444', backgroundColor: 'rgba(239,68,68,0.08)' } }}
                                                     >
-                                                      Copy
+                                                      Delete
                                                     </Button>
                                                   </Box>
                                                 </TableCell>
@@ -605,92 +797,327 @@ const WebSeriesManagement = () => {
       </Box>
 
       {/* Create Series Dialog */}
-      <Dialog open={createSeriesDialog} onClose={() => setCreateSeriesDialog(false)}>
-        <DialogTitle>Create New Web Series</DialogTitle>
-        <DialogContent>
+      <Dialog open={createSeriesDialog} onClose={() => setCreateSeriesDialog(false)} fullWidth maxWidth="sm" PaperProps={{
+        sx: {
+          background: 'rgba(15, 32, 39, 0.98)',
+          border: '1px solid rgba(79,172,254,0.25)',
+          backdropFilter: 'blur(12px)',
+          color: 'white',
+        }
+      }}>
+        <DialogTitle sx={{ fontWeight: 'bold' }}>Create New Web Series</DialogTitle>
+        <DialogContent dividers sx={{ borderColor: 'rgba(79,172,254,0.15)' }}>
+          <Typography variant="body2" sx={{ color: '#64748b', mb: 1 }}>
+            Enter a clear, descriptive title for your new web series.
+          </Typography>
           <TextField
             autoFocus
             margin="dense"
             label="Series Title"
+            placeholder="e.g. Galactic Adventures"
             fullWidth
-            variant="outlined"
+            size="small"
             value={newSeriesTitle}
             onChange={(e) => setNewSeriesTitle(e.target.value)}
+            variant="filled"
+            InputLabelProps={{ sx: { color: '#9ca3af' } }}
+            sx={{
+              input: { color: 'white' },
+              '.MuiFilledInput-root': {
+                backgroundColor: 'rgba(255,255,255,0.06)'
+              }
+            }}
           />
         </DialogContent>
         <DialogActions>
-          <Button onClick={() => setCreateSeriesDialog(false)}>Cancel</Button>
-          <Button onClick={createNewSeries} variant="contained">
-            Create
+          <Button onClick={() => setCreateSeriesDialog(false)} sx={{ color: '#cbd5e1' }}>Cancel</Button>
+          <Button onClick={createNewSeries} variant="contained" disabled={!newSeriesTitle.trim() || creatingSeries} sx={{
+            background: 'linear-gradient(45deg, #4facfe, #00f2fe)'
+          }}>
+            {creatingSeries ? (
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                <CircularProgress size={16} sx={{ color: 'white' }} />
+                Creating...
+              </Box>
+            ) : 'Create Series'}
           </Button>
         </DialogActions>
       </Dialog>
 
       {/* Add Season Dialog */}
-      <Dialog open={addSeasonDialog} onClose={() => setAddSeasonDialog(false)}>
-        <DialogTitle>
-          Add Season to "{selectedSeries?.title}"
-        </DialogTitle>
-        <DialogContent>
+      <Dialog open={addSeasonDialog} onClose={() => setAddSeasonDialog(false)} fullWidth maxWidth="xs" PaperProps={{
+        sx: {
+          background: 'rgba(15, 32, 39, 0.98)',
+          border: '1px solid rgba(79,172,254,0.25)',
+          backdropFilter: 'blur(12px)',
+          color: 'white',
+        }
+      }}>
+        <DialogTitle sx={{ fontWeight: 'bold' }}>Add Season</DialogTitle>
+        <DialogContent dividers sx={{ borderColor: 'rgba(79,172,254,0.15)' }}>
+          <Typography variant="caption" sx={{ color: '#64748b' }}>Series</Typography>
+          <Typography variant="body2" sx={{ mb: 2, fontWeight: 'bold' }}>{selectedSeries?.title || '—'}</Typography>
           <TextField
             autoFocus
             margin="dense"
             label="Season Number"
             type="number"
+            inputProps={{ min: 1 }}
             fullWidth
-            variant="outlined"
+            size="small"
             value={newSeasonNumber}
             onChange={(e) => setNewSeasonNumber(e.target.value)}
+            variant="filled"
+            InputLabelProps={{ sx: { color: '#9ca3af' } }}
+            sx={{
+              input: { color: 'white' },
+              '.MuiFilledInput-root': {
+                backgroundColor: 'rgba(255,255,255,0.06)'
+              }
+            }}
           />
         </DialogContent>
         <DialogActions>
-          <Button onClick={() => setAddSeasonDialog(false)}>Cancel</Button>
-          <Button onClick={addSeasonToSeries} variant="contained">
-            Add Season
+          <Button onClick={() => setAddSeasonDialog(false)} sx={{ color: '#cbd5e1' }}>Cancel</Button>
+          <Button onClick={addSeasonToSeries} variant="contained" disabled={!newSeasonNumber || addingSeason} sx={{
+            background: 'linear-gradient(45deg, #4facfe, #00f2fe)'
+          }}>
+            {addingSeason ? (
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                <CircularProgress size={16} sx={{ color: 'white' }} />
+                Adding...
+              </Box>
+            ) : 'Add Season'}
           </Button>
         </DialogActions>
       </Dialog>
 
-      {/* Add Episode Dialog */}
-      <Dialog open={addEpisodeDialog} onClose={() => setAddEpisodeDialog(false)}>
-        <DialogTitle>
-          Add Episode to "{selectedSeries?.title}"
+      {/* Improved Add Episode Dialog */}
+      <Dialog open={addEpisodeDialog} onClose={resetEpisodeForm} fullWidth maxWidth="md" PaperProps={{
+        sx: {
+          background: 'rgba(15, 32, 39, 0.98)',
+          border: '1px solid rgba(79,172,254,0.25)',
+          backdropFilter: 'blur(12px)',
+          color: 'white',
+        }
+      }}>
+        <DialogTitle sx={{ fontWeight: 'bold', borderBottom: '1px solid rgba(79,172,254,0.15)' }}>
+          Add New Episode
         </DialogTitle>
-        <DialogContent>
-          <TextField
-            autoFocus
-            margin="dense"
-            label="Season Number"
-            type="number"
-            fullWidth
-            variant="outlined"
-            value={newSeasonNumber}
-            onChange={(e) => setNewSeasonNumber(e.target.value)}
-            sx={{ mb: 2 }}
-          />
-          <TextField
-            margin="dense"
-            label="Episode Number"
-            type="number"
-            fullWidth
-            variant="outlined"
-            value={newEpisodeNumber}
-            onChange={(e) => setNewEpisodeNumber(e.target.value)}
-            sx={{ mb: 2 }}
-          />
-          <TextField
-            margin="dense"
-            label="Video URL"
-            fullWidth
-            variant="outlined"
-            value={newVideoUrl}
-            onChange={(e) => setNewVideoUrl(e.target.value)}
-          />
+        <DialogContent dividers sx={{ borderColor: 'rgba(79,172,254,0.15)', py: 3 }}>
+          <Grid container spacing={3}>
+            {/* Series Info */}
+            <Grid item xs={12}>
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, p: 2, backgroundColor: 'rgba(79,172,254,0.1)', borderRadius: 2 }}>
+                <MovieIcon sx={{ color: '#4facfe' }} />
+                <Box>
+                  <Typography variant="caption" sx={{ color: '#64748b', display: 'block' }}>
+                    Selected Series
+                  </Typography>
+                  <Typography variant="h6" sx={{ color: 'white', fontWeight: 'bold' }}>
+                    {selectedSeries?.title || 'No series selected'}
+                  </Typography>
+                </Box>
+              </Box>
+            </Grid>
+
+            {/* Season and Episode Numbers */}
+            <Grid item xs={12} sm={6}>
+              <TextField
+                label="Season Number"
+                type="number"
+                inputProps={{ min: 1 }}
+                fullWidth
+                value={newSeasonNumber}
+                onChange={(e) => setNewSeasonNumber(e.target.value)}
+                variant="outlined"
+                InputLabelProps={{ sx: { color: '#9ca3af' } }}
+                sx={{
+                  input: { color: 'white' },
+                  '.MuiOutlinedInput-root': {
+                    backgroundColor: 'rgba(255,255,255,0.06)',
+                    '& fieldset': { borderColor: 'rgba(255,255,255,0.2)' },
+                    '&:hover fieldset': { borderColor: '#4facfe' },
+                    '&.Mui-focused fieldset': { borderColor: '#00f2fe' }
+                  }
+                }}
+              />
+            </Grid>
+
+            <Grid item xs={12} sm={6}>
+              <TextField
+                label="Episode Number"
+                type="number"
+                inputProps={{ min: 1 }}
+                fullWidth
+                value={newEpisodeNumber}
+                onChange={(e) => setNewEpisodeNumber(e.target.value)}
+                variant="outlined"
+                InputLabelProps={{ sx: { color: '#9ca3af' } }}
+                sx={{
+                  input: { color: 'white' },
+                  '.MuiOutlinedInput-root': {
+                    backgroundColor: 'rgba(255,255,255,0.06)',
+                    '& fieldset': { borderColor: 'rgba(255,255,255,0.2)' },
+                    '&:hover fieldset': { borderColor: '#4facfe' },
+                    '&.Mui-focused fieldset': { borderColor: '#00f2fe' }
+                  }
+                }}
+              />
+            </Grid>
+
+            {/* File Uploads */}
+            <Grid item xs={12}>
+              <Typography variant="subtitle1" sx={{ color: '#cbd5e1', mb: 2, fontWeight: 'bold' }}>
+                Upload Video Files (Both qualities required)
+              </Typography>
+            </Grid>
+
+            {/* 720p Upload */}
+            <Grid item xs={12} md={6}>
+              <Card sx={{ 
+                backgroundColor: 'rgba(255,255,255,0.05)', 
+                border: video720 ? '2px solid #4facfe' : '1px solid rgba(255,255,255,0.1)',
+                transition: 'all 0.3s ease'
+              }}>
+                <CardContent>
+                  <Typography variant="h6" sx={{ color: '#4facfe', mb: 1 }}>
+                    720p Quality
+                  </Typography>
+                  <Typography variant="body2" sx={{ color: '#cbd5e1', mb: 2 }}>
+                    Standard HD quality video file
+                  </Typography>
+                  <Button 
+                    fullWidth 
+                    variant="contained" 
+                    component="label"
+                    startIcon={<AddIcon />}
+                    sx={{
+                      background: video720 ? 
+                        'linear-gradient(45deg, #10b981, #34d399)' : 
+                        'linear-gradient(45deg, #4facfe, #00f2fe)',
+                      '&:hover': { opacity: 0.9 }
+                    }}
+                  >
+                    {video720 ? 'Change 720p File' : 'Select 720p Video'}
+                    <input 
+                      type="file" 
+                      accept="video/*" 
+                      hidden 
+                      onChange={handleFile720Change}
+                    />
+                  </Button>
+                  {video720 && (
+                    <Box sx={{ mt: 2, p: 1, backgroundColor: 'rgba(79,172,254,0.1)', borderRadius: 1 }}>
+                      <Typography variant="caption" sx={{ color: '#4facfe', fontWeight: 'bold' }}>
+                        Selected: {video720.name}
+                      </Typography>
+                      <Typography variant="caption" sx={{ color: '#cbd5e1', display: 'block', mt: 0.5 }}>
+                        Size: {(video720.size / (1024 * 1024)).toFixed(2)} MB
+                      </Typography>
+                    </Box>
+                  )}
+                </CardContent>
+              </Card>
+            </Grid>
+
+            {/* 1080p Upload */}
+            <Grid item xs={12} md={6}>
+              <Card sx={{ 
+                backgroundColor: 'rgba(255,255,255,0.05)', 
+                border: video1080 ? '2px solid #00f2fe' : '1px solid rgba(255,255,255,0.1)',
+                transition: 'all 0.3s ease'
+              }}>
+                <CardContent>
+                  <Typography variant="h6" sx={{ color: '#00f2fe', mb: 1 }}>
+                    1080p Quality
+                  </Typography>
+                  <Typography variant="body2" sx={{ color: '#cbd5e1', mb: 2 }}>
+                    Full HD quality video file
+                  </Typography>
+                  <Button 
+                    fullWidth 
+                    variant="contained" 
+                    component="label"
+                    startIcon={<AddIcon />}
+                    sx={{
+                      background: video1080 ? 
+                        'linear-gradient(45deg, #10b981, #34d399)' : 
+                        'linear-gradient(45deg, #00f2fe, #4facfe)',
+                      '&:hover': { opacity: 0.9 }
+                    }}
+                  >
+                    {video1080 ? 'Change 1080p File' : 'Select 1080p Video'}
+                    <input 
+                      type="file" 
+                      accept="video/*" 
+                      hidden 
+                      onChange={handleFile1080Change}
+                    />
+                  </Button>
+                  {video1080 && (
+                    <Box sx={{ mt: 2, p: 1, backgroundColor: 'rgba(0,242,254,0.1)', borderRadius: 1 }}>
+                      <Typography variant="caption" sx={{ color: '#00f2fe', fontWeight: 'bold' }}>
+                        Selected: {video1080.name}
+                      </Typography>
+                      <Typography variant="caption" sx={{ color: '#cbd5e1', display: 'block', mt: 0.5 }}>
+                        Size: {(video1080.size / (1024 * 1024)).toFixed(2)} MB
+                      </Typography>
+                    </Box>
+                  )}
+                </CardContent>
+              </Card>
+            </Grid>
+
+            {/* Requirements */}
+            <Grid item xs={12}>
+              <Alert 
+                severity="info" 
+                sx={{ 
+                  backgroundColor: 'rgba(79,172,254,0.1)',
+                  color: '#cbd5e1',
+                  border: '1px solid rgba(79,172,254,0.3)'
+                }}
+              >
+                <Typography variant="body2">
+                  <strong>Requirements:</strong> Both 720p and 1080p video files are required. 
+                  Supported formats: MP4, MKV, AVI, MOV. Maximum file size: 2GB each.
+                </Typography>
+              </Alert>
+            </Grid>
+          </Grid>
         </DialogContent>
-        <DialogActions>
-          <Button onClick={() => setAddEpisodeDialog(false)}>Cancel</Button>
-          <Button onClick={addEpisodeToSeason} variant="contained">
-            Add Episode
+        <DialogActions sx={{ p: 3, borderTop: '1px solid rgba(79,172,254,0.15)' }}>
+          <Button 
+            onClick={resetEpisodeForm} 
+            sx={{ 
+              color: '#cbd5e1',
+              '&:hover': { backgroundColor: 'rgba(255,255,255,0.05)' }
+            }}
+          >
+            Cancel
+          </Button>
+          <Button 
+            onClick={addEpisodeToSeason} 
+            variant="contained" 
+            disabled={!newSeasonNumber || !newEpisodeNumber || !video720 || !video1080 || addingEpisode}
+            sx={{
+              background: 'linear-gradient(45deg, #4facfe, #00f2fe)',
+              px: 4,
+              '&:disabled': {
+                background: 'rgba(255,255,255,0.1)',
+                color: 'rgba(255,255,255,0.3)'
+              }
+            }}
+          >
+            {addingEpisode ? (
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                <CircularProgress size={16} sx={{ color: 'white' }} />
+                Uploading Episode...
+              </Box>
+            ) : (
+              `Add Episode ${newEpisodeNumber} to Season ${newSeasonNumber}`
+            )}
           </Button>
         </DialogActions>
       </Dialog>

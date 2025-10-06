@@ -60,7 +60,7 @@ export default function SubscriptionsScreen() {
       
             // ✅ Step 2: Razorpay checkout options
             const options = {
-                key: "rzp_test_zGCQXPmnJfWXkO",
+                key: "rzp_live_RQ5RTynNmBshtz",
                 amount: order.amount,
                 currency: order.currency,
                 name: "CloudDrive",

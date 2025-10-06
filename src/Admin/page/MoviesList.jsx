@@ -62,9 +62,18 @@ const MoviesList = () => {
   };
 
   const handleCopy = (movieId, quality, url) => {
-    navigator.clipboard.writeText(url);
-    setCopied({ [`${movieId}_${quality}`]: true });
-    setTimeout(() => setCopied({}), 1200);
+    try {
+      navigator.clipboard.writeText(url);
+      const key = `${movieId}_${quality}`;
+      setCopied(prev => ({ ...prev, [key]: true }));
+      setTimeout(() => {
+        setCopied(prev => {
+          const next = { ...prev };
+          delete next[key];
+          return next;
+        });
+      }, 1200);
+    } catch {}
   };
 
   async function ListMovis(params) {
@@ -171,11 +180,18 @@ const MoviesList = () => {
                         {movie?.qualities["720p"] && typeof movie.qualities["720p"] === 'string' ? (
                           <>
                             {(() => {
-                              const fullLink = `https://kensdrive.co.in/watch?video=${movie.qualities["720p"]}`;
+                              const fullLink = `https://kensdrive.co.in/watch?video=${encodeURIComponent(movie.qualities["720p"])}`;
                               const shortLink = fullLink.length > 30 ? `${fullLink.slice(0, 18)}...${fullLink.slice(-8)}` : fullLink;
                               return (
                                 <>
-                                  <a href={fullLink} target="_blank" rel="noopener noreferrer" style={{ color: '#4FC3F7', textDecoration: 'underline', wordBreak: 'break-all', fontSize: 12 }}>
+                                  <a
+                                    href={fullLink}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    onClick={(e) => { e.preventDefault(); handleCopy(movie._id || movie.id, '720p', fullLink); }}
+                                    title="Click to copy"
+                                    style={{ color: '#4FC3F7', textDecoration: 'underline', wordBreak: 'break-all', fontSize: 12, cursor: 'pointer' }}
+                                  >
                                     {shortLink}
                                   </a>
                                   <button
@@ -183,7 +199,7 @@ const MoviesList = () => {
                                     title="Copy link"
                                     onClick={() => handleCopy(movie._id || movie.id, '720p', fullLink)}
                                   >
-                                    Copy
+                                    {copied[`${movie._id || movie.id}_720p`] ? 'Copied' : 'Copy'}
                                   </button>
                                   {copied[`${movie._id || movie.id}_720p`] && (
                                     <span style={{ color: '#4FC3F7', marginLeft: 3, fontSize: 11 }}>Copied!</span>
@@ -201,11 +217,18 @@ const MoviesList = () => {
                         {movie?.qualities["1080p"] && typeof movie.qualities["1080p"] === 'string' ? (
                           <>
                             {(() => {
-                              const fullLink = `https://kensdrive.co.in/watch?video=${movie.qualities["1080p"]}`;
+                              const fullLink = `https://kensdrive.co.in/watch?video=${encodeURIComponent(movie.qualities["1080p"])}`;
                               const shortLink = fullLink.length > 30 ? `${fullLink.slice(0, 18)}...${fullLink.slice(-8)}` : fullLink;
                               return (
                                 <>
-                                  <a href={fullLink} target="_blank" rel="noopener noreferrer" style={{ color: '#4FC3F7', textDecoration: 'underline', wordBreak: 'break-all', fontSize: 12 }}>
+                                  <a
+                                    href={fullLink}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    onClick={(e) => { e.preventDefault(); handleCopy(movie._id || movie.id, '1080p', fullLink); }}
+                                    title="Click to copy"
+                                    style={{ color: '#4FC3F7', textDecoration: 'underline', wordBreak: 'break-all', fontSize: 12, cursor: 'pointer' }}
+                                  >
                                     {shortLink}
                                   </a>
                                   <button
@@ -213,7 +236,7 @@ const MoviesList = () => {
                                     title="Copy link"
                                     onClick={() => handleCopy(movie._id || movie.id, '1080p', fullLink)}
                                   >
-                                    Copy
+                                    {copied[`${movie._id || movie.id}_1080p`] ? 'Copied' : 'Copy'}
                                   </button>
                                   {copied[`${movie._id || movie.id}_1080p`] && (
                                     <span style={{ color: '#4FC3F7', marginLeft: 3, fontSize: 11 }}>Copied!</span>
@@ -303,7 +326,7 @@ const MoviesList = () => {
               >
                 <CloseIcon />
               </IconButton>
-              <MovieCreateForm handleCloseModal={handleCloseModal}  />
+              <MovieCreateForm   ListMovis={ListMovis} handleCloseModal={handleCloseModal}  />
             </Box>
           </DialogContent>
         </Dialog>
