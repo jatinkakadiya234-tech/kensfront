@@ -1,7 +1,6 @@
 import axios from "axios"
 const Url = "https://kensdrive.co.in/api";
-    console.log(Url)
-
+// const Url = "http://localhost:8880/api"
 // let Url = "http://10.223.222.176:8880"
 // let Url = "https://kensdrivebackend-5dp1.onrender.com"
 export const Apihelper = {
