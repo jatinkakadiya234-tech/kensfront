@@ -147,14 +147,10 @@ const MovieCreateForm = ({ handleCloseModal, ListMovis }) => {
     <div className="min-h-screen py-12 px-4 sm:px-6 lg:px-8" style={{ background: 'transparent' }}>
       <ToastContainer />
       <div className="max-w-3xl mx-auto relative">
-        {isLoading && (
-          <div className="absolute inset-0 bg-black bg-opacity-50 flex items-center justify-center z-10 rounded-lg">
-            <div className="bg-white bg-opacity-10 backdrop-blur-md rounded-lg p-6 flex flex-col items-center">
+        {/* {isLoading && (
               <TrophySpin color="#ffffff" size="large" text={contentType === 'movie' ? 'Creating Movie...' : 'Creating Series...'} textColor="#ffffff" />
-              <p className="text-gray-300 text-sm mt-2">Please wait while we process your request</p>
-            </div>
-          </div>
-        )}
+          
+        )} */}
         <div className="shadow-xl rounded-lg overflow-hidden" style={{
           background: 'rgba(255, 255, 255, 0.05)',
           backdropFilter: 'blur(20px)',
@@ -183,7 +179,7 @@ const MovieCreateForm = ({ handleCloseModal, ListMovis }) => {
                 style={{ background: 'rgba(255, 255, 255, 0.9)', borderColor: '#e0e0e0', color: '#333' }}
               >
                 <option value="movie">Movie</option>
-                <option value="series">Web Series</option>
+                
               </select>
             </div>
             {contentType === 'movie' && (
@@ -248,6 +244,8 @@ const MovieCreateForm = ({ handleCloseModal, ListMovis }) => {
                     )}
                   </div>
                 </div>
+
+                
 
                 {/* Video Quality Uploads */}
                 <div className="space-y-4">

@@ -46,11 +46,16 @@ import {
   ExpandMore as ExpandMoreIcon,
   Visibility as ViewIcon,
   Movie as MovieIcon,
-  Check as CheckIcon
+  Check as CheckIcon,
+  Numbers,
+  VideoFileOutlined,
+  HighQualityOutlined
 } from '@mui/icons-material';
+
 import { Apihelper } from '../../common/service/ApiHelper';
 import { toast } from 'react-toastify';
 import TrophySpin from '../../common/Loader/TrophySpin';
+import { CloudUploadIcon } from 'lucide-react';
 
 const WebSeriesManagement = () => {
   // State management
@@ -893,234 +898,426 @@ const WebSeriesManagement = () => {
       </Dialog>
 
       {/* Improved Add Episode Dialog */}
-      <Dialog open={addEpisodeDialog} onClose={resetEpisodeForm} fullWidth maxWidth="md" PaperProps={{
-        sx: {
-          background: 'rgba(15, 32, 39, 0.98)',
-          border: '1px solid rgba(79,172,254,0.25)',
-          backdropFilter: 'blur(12px)',
-          color: 'white',
-        }
-      }}>
-        <DialogTitle sx={{ fontWeight: 'bold', borderBottom: '1px solid rgba(79,172,254,0.15)' }}>
-          Add New Episode
-        </DialogTitle>
-        <DialogContent dividers sx={{ borderColor: 'rgba(79,172,254,0.15)', py: 3 }}>
-          <Grid container spacing={3}>
-            {/* Series Info */}
-            <Grid item xs={12}>
-              <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, p: 2, backgroundColor: 'rgba(79,172,254,0.1)', borderRadius: 2 }}>
-                <MovieIcon sx={{ color: '#4facfe' }} />
-                <Box>
-                  <Typography variant="caption" sx={{ color: '#64748b', display: 'block' }}>
-                    Selected Series
-                  </Typography>
-                  <Typography variant="h6" sx={{ color: 'white', fontWeight: 'bold' }}>
-                    {selectedSeries?.title || 'No series selected'}
-                  </Typography>
-                </Box>
+     <Dialog 
+  open={addEpisodeDialog} 
+  onClose={resetEpisodeForm} 
+  fullWidth 
+  maxWidth="md" 
+  PaperProps={{
+    sx: {
+      background: 'rgba(15, 32, 39, 0.98)',
+      border: '1px solid rgba(79,172,254,0.25)',
+      backdropFilter: 'blur(12px)',
+      color: 'white',
+      borderRadius: 3
+    }
+  }}
+>
+  {/* Header */}
+  <DialogTitle sx={{ 
+    fontWeight: 'bold', 
+    borderBottom: '1px solid rgba(79,172,254,0.15)',
+    py: 2.5,
+    background: 'linear-gradient(135deg, rgba(79,172,254,0.1) 0%, rgba(0,242,254,0.05) 100%)'
+  }}>
+    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
+      <AddIcon sx={{ color: '#4facfe' }} />
+      Add New Episode
+    </Box>
+  </DialogTitle>
+
+  <DialogContent dividers sx={{ borderColor: 'rgba(79,172,254,0.15)', py: 3, px: 3 }}>
+    <Grid container spacing={3}>
+      {/* Series Info Section */}
+      <Grid item xs={12}>
+        <Card sx={{ 
+          background: 'linear-gradient(135deg, rgba(79,172,254,0.1) 0%, rgba(0,242,254,0.05) 100%)',
+          border: '1px solid rgba(79,172,254,0.2)',
+          borderRadius: 2
+        }}>
+          <CardContent sx={{ p: 2.5 }}>
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+              <Box sx={{
+                p: 1.5,
+                backgroundColor: 'rgba(79,172,254,0.2)',
+                borderRadius: 2,
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center'
+              }}>
+                <MovieIcon sx={{ color: '#4facfe', fontSize: 28 }} />
               </Box>
-            </Grid>
-
-            {/* Season and Episode Numbers */}
-            <Grid item xs={12} sm={6}>
-              <TextField
-                label="Season Number"
-                type="number"
-                inputProps={{ min: 1 }}
-                fullWidth
-                value={newSeasonNumber}
-                onChange={(e) => setNewSeasonNumber(e.target.value)}
-                variant="outlined"
-                InputLabelProps={{ sx: { color: '#9ca3af' } }}
-                sx={{
-                  input: { color: 'white' },
-                  '.MuiOutlinedInput-root': {
-                    backgroundColor: 'rgba(255,255,255,0.06)',
-                    '& fieldset': { borderColor: 'rgba(255,255,255,0.2)' },
-                    '&:hover fieldset': { borderColor: '#4facfe' },
-                    '&.Mui-focused fieldset': { borderColor: '#00f2fe' }
-                  }
-                }}
-              />
-            </Grid>
-
-            <Grid item xs={12} sm={6}>
-              <TextField
-                label="Episode Number"
-                type="number"
-                inputProps={{ min: 1 }}
-                fullWidth
-                value={newEpisodeNumber}
-                onChange={(e) => setNewEpisodeNumber(e.target.value)}
-                variant="outlined"
-                InputLabelProps={{ sx: { color: '#9ca3af' } }}
-                sx={{
-                  input: { color: 'white' },
-                  '.MuiOutlinedInput-root': {
-                    backgroundColor: 'rgba(255,255,255,0.06)',
-                    '& fieldset': { borderColor: 'rgba(255,255,255,0.2)' },
-                    '&:hover fieldset': { borderColor: '#4facfe' },
-                    '&.Mui-focused fieldset': { borderColor: '#00f2fe' }
-                  }
-                }}
-              />
-            </Grid>
-
-            {/* File Uploads */}
-            <Grid item xs={12}>
-              <Typography variant="subtitle1" sx={{ color: '#cbd5e1', mb: 2, fontWeight: 'bold' }}>
-                Upload Video Files (Both qualities required)
-              </Typography>
-            </Grid>
-
-            {/* 720p Upload */}
-            <Grid item xs={12} md={6}>
-              <Card sx={{ 
-                backgroundColor: 'rgba(255,255,255,0.05)', 
-                border: video720 ? '2px solid #4facfe' : '1px solid rgba(255,255,255,0.1)',
-                transition: 'all 0.3s ease'
-              }}>
-                <CardContent>
-                  <Typography variant="h6" sx={{ color: '#4facfe', mb: 1 }}>
-                    720p Quality
-                  </Typography>
-                  <Typography variant="body2" sx={{ color: '#cbd5e1', mb: 2 }}>
-                    Standard HD quality video file
-                  </Typography>
-                  <Button 
-                    fullWidth 
-                    variant="contained" 
-                    component="label"
-                    startIcon={<AddIcon />}
-                    sx={{
-                      background: video720 ? 
-                        'linear-gradient(45deg, #10b981, #34d399)' : 
-                        'linear-gradient(45deg, #4facfe, #00f2fe)',
-                      '&:hover': { opacity: 0.9 }
-                    }}
-                  >
-                    {video720 ? 'Change 720p File' : 'Select 720p Video'}
-                    <input 
-                      type="file" 
-                      accept="video/*" 
-                      hidden 
-                      onChange={handleFile720Change}
-                    />
-                  </Button>
-                  {video720 && (
-                    <Box sx={{ mt: 2, p: 1, backgroundColor: 'rgba(79,172,254,0.1)', borderRadius: 1 }}>
-                      <Typography variant="caption" sx={{ color: '#4facfe', fontWeight: 'bold' }}>
-                        Selected: {video720.name}
-                      </Typography>
-                      <Typography variant="caption" sx={{ color: '#cbd5e1', display: 'block', mt: 0.5 }}>
-                        Size: {(video720.size / (1024 * 1024)).toFixed(2)} MB
-                      </Typography>
-                    </Box>
-                  )}
-                </CardContent>
-              </Card>
-            </Grid>
-
-            {/* 1080p Upload */}
-            <Grid item xs={12} md={6}>
-              <Card sx={{ 
-                backgroundColor: 'rgba(255,255,255,0.05)', 
-                border: video1080 ? '2px solid #00f2fe' : '1px solid rgba(255,255,255,0.1)',
-                transition: 'all 0.3s ease'
-              }}>
-                <CardContent>
-                  <Typography variant="h6" sx={{ color: '#00f2fe', mb: 1 }}>
-                    1080p Quality
-                  </Typography>
-                  <Typography variant="body2" sx={{ color: '#cbd5e1', mb: 2 }}>
-                    Full HD quality video file
-                  </Typography>
-                  <Button 
-                    fullWidth 
-                    variant="contained" 
-                    component="label"
-                    startIcon={<AddIcon />}
-                    sx={{
-                      background: video1080 ? 
-                        'linear-gradient(45deg, #10b981, #34d399)' : 
-                        'linear-gradient(45deg, #00f2fe, #4facfe)',
-                      '&:hover': { opacity: 0.9 }
-                    }}
-                  >
-                    {video1080 ? 'Change 1080p File' : 'Select 1080p Video'}
-                    <input 
-                      type="file" 
-                      accept="video/*" 
-                      hidden 
-                      onChange={handleFile1080Change}
-                    />
-                  </Button>
-                  {video1080 && (
-                    <Box sx={{ mt: 2, p: 1, backgroundColor: 'rgba(0,242,254,0.1)', borderRadius: 1 }}>
-                      <Typography variant="caption" sx={{ color: '#00f2fe', fontWeight: 'bold' }}>
-                        Selected: {video1080.name}
-                      </Typography>
-                      <Typography variant="caption" sx={{ color: '#cbd5e1', display: 'block', mt: 0.5 }}>
-                        Size: {(video1080.size / (1024 * 1024)).toFixed(2)} MB
-                      </Typography>
-                    </Box>
-                  )}
-                </CardContent>
-              </Card>
-            </Grid>
-
-            {/* Requirements */}
-            <Grid item xs={12}>
-              <Alert 
-                severity="info" 
-                sx={{ 
-                  backgroundColor: 'rgba(79,172,254,0.1)',
-                  color: '#cbd5e1',
-                  border: '1px solid rgba(79,172,254,0.3)'
-                }}
-              >
-                <Typography variant="body2">
-                  <strong>Requirements:</strong> Both 720p and 1080p video files are required. 
-                  Supported formats: MP4, MKV, AVI, MOV. Maximum file size: 2GB each.
+              <Box>
+                <Typography variant="caption" sx={{ color: '#94a3b8', display: 'block', fontWeight: 'medium' }}>
+                  Selected Series
                 </Typography>
-              </Alert>
-            </Grid>
-          </Grid>
-        </DialogContent>
-        <DialogActions sx={{ p: 3, borderTop: '1px solid rgba(79,172,254,0.15)' }}>
-          <Button 
-            onClick={resetEpisodeForm} 
-            sx={{ 
-              color: '#cbd5e1',
-              '&:hover': { backgroundColor: 'rgba(255,255,255,0.05)' }
-            }}
-          >
-            Cancel
-          </Button>
-          <Button 
-            onClick={addEpisodeToSeason} 
-            variant="contained" 
-            disabled={!newSeasonNumber || !newEpisodeNumber || !video720 || !video1080 || addingEpisode}
-            sx={{
-              background: 'linear-gradient(45deg, #4facfe, #00f2fe)',
-              px: 4,
-              '&:disabled': {
-                background: 'rgba(255,255,255,0.1)',
-                color: 'rgba(255,255,255,0.3)'
-              }
-            }}
-          >
-            {addingEpisode ? (
-              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                <CircularProgress size={16} sx={{ color: 'white' }} />
-                Uploading Episode...
+                <Typography variant="h6" sx={{ color: 'white', fontWeight: 'bold', mt: 0.5 }}>
+                  {selectedSeries?.title || 'No series selected'}
+                </Typography>
               </Box>
-            ) : (
-              `Add Episode ${newEpisodeNumber} to Season ${newSeasonNumber}`
+            </Box>
+          </CardContent>
+        </Card>
+      </Grid>
+
+      {/* Episode Details Section */}
+      <Grid item xs={12}>
+        <Typography variant="h6" sx={{ color: '#e2e8f0', mb: 2, fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: 1 }}>
+          <Numbers sx={{ fontSize: 20, color: '#4facfe' }} />
+          Episode Details
+        </Typography>
+      </Grid>
+
+      {/* Season and Episode Numbers */}
+      <Grid item xs={12} sm={6}>
+        <TextField
+          label="Season Number"
+          type="number"
+          inputProps={{ min: 1 }}
+          fullWidth
+          value={newSeasonNumber}
+          onChange={(e) => setNewSeasonNumber(e.target.value)}
+          variant="outlined"
+          InputLabelProps={{ sx: { color: '#94a3b8' } }}
+          sx={{
+            input: { 
+              color: 'white',
+              fontSize: '16px',
+              py: 1.5
+            },
+            '.MuiOutlinedInput-root': {
+              backgroundColor: 'rgba(255,255,255,0.06)',
+              borderRadius: 2,
+              '& fieldset': { 
+                borderColor: 'rgba(255,255,255,0.2)',
+                borderRadius: 2
+              },
+              '&:hover fieldset': { 
+                borderColor: '#4facfe',
+                boxShadow: '0 0 0 2px rgba(79,172,254,0.1)'
+              },
+              '&.Mui-focused fieldset': { 
+                borderColor: '#00f2fe',
+                boxShadow: '0 0 0 3px rgba(0,242,254,0.1)'
+              }
+            }
+          }}
+        />
+      </Grid>
+
+      <Grid item xs={12} sm={6}>
+        <TextField
+          label="Episode Number"
+          type="number"
+          inputProps={{ min: 1 }}
+          fullWidth
+          value={newEpisodeNumber}
+          onChange={(e) => setNewEpisodeNumber(e.target.value)}
+          variant="outlined"
+          InputLabelProps={{ sx: { color: '#94a3b8' } }}
+          sx={{
+            input: { 
+              color: 'white',
+              fontSize: '16px',
+              py: 1.5
+            },
+            '.MuiOutlinedInput-root': {
+              backgroundColor: 'rgba(255,255,255,0.06)',
+              borderRadius: 2,
+              '& fieldset': { 
+                borderColor: 'rgba(255,255,255,0.2)',
+                borderRadius: 2
+              },
+              '&:hover fieldset': { 
+                borderColor: '#4facfe',
+                boxShadow: '0 0 0 2px rgba(79,172,254,0.1)'
+              },
+              '&.Mui-focused fieldset': { 
+                borderColor: '#00f2fe',
+                boxShadow: '0 0 0 3px rgba(0,242,254,0.1)'
+              }
+            }
+          }}
+        />
+      </Grid>
+
+      {/* File Uploads Section */}
+      <Grid item xs={12}>
+        <Typography variant="h6" sx={{ color: '#e2e8f0', mb: 2, fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: 1 }}>
+          <CloudUploadIcon sx={{ fontSize: 20, color: '#4facfe' }} />
+          Upload Video Files
+          <Chip 
+            label="Both qualities required" 
+            size="small" 
+            sx={{ 
+              ml: 1,
+              backgroundColor: 'rgba(79,172,254,0.2)',
+              color: '#4facfe',
+              fontWeight: 'bold'
+            }} 
+          />
+        </Typography>
+      </Grid>
+
+      {/* 720p Upload */}
+      <Grid item xs={12} md={6}>
+        <Card sx={{ 
+          backgroundColor: 'rgba(255,255,255,0.05)', 
+          border: video720 ? '2px solid #4facfe' : '1px solid rgba(255,255,255,0.15)',
+          transition: 'all 0.3s ease',
+          borderRadius: 2,
+          height: '100%',
+          '&:hover': {
+            borderColor: video720 ? '#4facfe' : 'rgba(79,172,254,0.4)',
+            transform: 'translateY(-2px)',
+            boxShadow: '0 8px 25px rgba(0,0,0,0.15)'
+          }
+        }}>
+          <CardContent sx={{ p: 3, textAlign: 'center' }}>
+            <Box sx={{
+              width: 60,
+              height: 60,
+              backgroundColor: video720 ? 'rgba(79,172,254,0.2)' : 'rgba(255,255,255,0.1)',
+              borderRadius: '50%',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              margin: '0 auto 16px',
+              border: `2px solid ${video720 ? '#4facfe' : 'rgba(255,255,255,0.3)'}`
+            }}>
+              <VideoFileOutlined sx={{ 
+                fontSize: 30, 
+                color: video720 ? '#4facfe' : '#94a3b8' 
+              }} />
+            </Box>
+            
+            <Typography variant="h6" sx={{ color: '#4facfe', mb: 1, fontWeight: 'bold' }}>
+              720p Quality
+            </Typography>
+            <Typography variant="body2" sx={{ color: '#cbd5e1', mb: 3 }}>
+              Standard HD quality video file
+            </Typography>
+            
+            <Button 
+              fullWidth 
+              variant="contained" 
+              component="label"
+              startIcon={video720 ? <CheckIcon /> : <CloudUploadIcon />}
+              sx={{
+                background: video720 ? 
+                  'linear-gradient(45deg, #10b981, #34d399)' : 
+                  'linear-gradient(45deg, #4facfe, #00f2fe)',
+                borderRadius: 2,
+                py: 1.2,
+                fontWeight: 'bold',
+                textTransform: 'none',
+                fontSize: '15px',
+                '&:hover': { 
+                  opacity: 0.9,
+                  transform: 'translateY(-1px)'
+                }
+              }}
+            >
+              {video720 ? 'File Selected' : 'Select 720p Video'}
+              <input 
+                type="file" 
+                accept="video/*" 
+                hidden 
+                onChange={handleFile720Change}
+              />
+            </Button>
+            
+            {video720 && (
+              <Box sx={{ 
+                mt: 3, 
+                p: 2, 
+                backgroundColor: 'rgba(79,172,254,0.1)', 
+                borderRadius: 2,
+                border: '1px solid rgba(79,172,254,0.2)'
+              }}>
+                <Typography variant="caption" sx={{ color: '#4facfe', fontWeight: 'bold', display: 'block' }}>
+                  ✓ {video720.name}
+                </Typography>
+                <Typography variant="caption" sx={{ color: '#cbd5e1', display: 'block', mt: 0.5 }}>
+                  Size: {(video720.size / (1024 * 1024)).toFixed(2)} MB
+                </Typography>
+              </Box>
             )}
-          </Button>
-        </DialogActions>
-      </Dialog>
+          </CardContent>
+        </Card>
+      </Grid>
+
+      {/* 1080p Upload */}
+      <Grid item xs={12} md={6}>
+        <Card sx={{ 
+          backgroundColor: 'rgba(255,255,255,0.05)', 
+          border: video1080 ? '2px solid #00f2fe' : '1px solid rgba(255,255,255,0.15)',
+          transition: 'all 0.3s ease',
+          borderRadius: 2,
+          height: '100%',
+          '&:hover': {
+            borderColor: video1080 ? '#00f2fe' : 'rgba(0,242,254,0.4)',
+            transform: 'translateY(-2px)',
+            boxShadow: '0 8px 25px rgba(0,0,0,0.15)'
+          }
+        }}>
+          <CardContent sx={{ p: 3, textAlign: 'center' }}>
+            <Box sx={{
+              width: 60,
+              height: 60,
+              backgroundColor: video1080 ? 'rgba(0,242,254,0.2)' : 'rgba(255,255,255,0.1)',
+              borderRadius: '50%',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              margin: '0 auto 16px',
+              border: `2px solid ${video1080 ? '#00f2fe' : 'rgba(255,255,255,0.3)'}`
+            }}>
+              <HighQualityOutlined sx={{ 
+                fontSize: 30, 
+                color: video1080 ? '#00f2fe' : '#94a3b8' 
+              }} />
+            </Box>
+            
+            <Typography variant="h6" sx={{ color: '#00f2fe', mb: 1, fontWeight: 'bold' }}>
+              1080p Quality
+            </Typography>
+            <Typography variant="body2" sx={{ color: '#cbd5e1', mb: 3 }}>
+              Full HD quality video file
+            </Typography>
+            
+            <Button 
+              fullWidth 
+              variant="contained" 
+              component="label"
+              startIcon={video1080 ? <CheckIcon /> : <CloudUploadIcon />}
+              sx={{
+                background: video1080 ? 
+                  'linear-gradient(45deg, #10b981, #34d399)' : 
+                  'linear-gradient(45deg, #00f2fe, #4facfe)',
+                borderRadius: 2,
+                py: 1.2,
+                fontWeight: 'bold',
+                textTransform: 'none',
+                fontSize: '15px',
+                '&:hover': { 
+                  opacity: 0.9,
+                  transform: 'translateY(-1px)'
+                }
+              }}
+            >
+              {video1080 ? 'File Selected' : 'Select 1080p Video'}
+              <input 
+                type="file" 
+                accept="video/*" 
+                hidden 
+                onChange={handleFile1080Change}
+              />
+            </Button>
+            
+            {video1080 && (
+              <Box sx={{ 
+                mt: 3, 
+                p: 2, 
+                backgroundColor: 'rgba(0,242,254,0.1)', 
+                borderRadius: 2,
+                border: '1px solid rgba(0,242,254,0.2)'
+              }}>
+                <Typography variant="caption" sx={{ color: '#00f2fe', fontWeight: 'bold', display: 'block' }}>
+                  ✓ {video1080.name}
+                </Typography>
+                <Typography variant="caption" sx={{ color: '#cbd5e1', display: 'block', mt: 0.5 }}>
+                  Size: {(video1080.size / (1024 * 1024)).toFixed(2)} MB
+                </Typography>
+              </Box>
+            )}
+          </CardContent>
+        </Card>
+      </Grid>
+
+      {/* Requirements Info */}
+      <Grid item xs={12}>
+        <Alert 
+          severity="info" 
+          sx={{ 
+            backgroundColor: 'rgba(79,172,254,0.1)',
+            color: '#cbd5e1',
+            border: '1px solid rgba(79,172,254,0.3)',
+            borderRadius: 2,
+            '& .MuiAlert-icon': {
+              color: '#4facfe'
+            }
+          }}
+        >
+          <Typography variant="body2">
+            <strong>Requirements:</strong> Both 720p and 1080p video files are required. 
+            Supported formats: MP4, MKV, AVI, MOV. Maximum file size: 2GB each.
+          </Typography>
+        </Alert>
+      </Grid>
+    </Grid>
+  </DialogContent>
+
+  {/* Footer Actions */}
+  <DialogActions sx={{ 
+    p: 3, 
+    borderTop: '1px solid rgba(79,172,254,0.15)',
+    background: 'rgba(15, 32, 39, 0.8)'
+  }}>
+    <Button 
+      onClick={resetEpisodeForm} 
+      variant="outlined"
+      sx={{ 
+        color: '#cbd5e1',
+        borderColor: 'rgba(255,255,255,0.2)',
+        borderRadius: 2,
+        px: 4,
+        py: 1,
+        '&:hover': { 
+          backgroundColor: 'rgba(255,255,255,0.05)',
+          borderColor: 'rgba(255,255,255,0.3)'
+        }
+      }}
+    >
+      Cancel
+    </Button>
+    <Button 
+      onClick={addEpisodeToSeason} 
+      variant="contained" 
+      disabled={!newSeasonNumber || !newEpisodeNumber || !video720 || !video1080 || addingEpisode}
+      sx={{
+        background: 'linear-gradient(45deg, #4facfe, #00f2fe)',
+        borderRadius: 2,
+        px: 4,
+        py: 1,
+        fontWeight: 'bold',
+        textTransform: 'none',
+        fontSize: '15px',
+        boxShadow: '0 4px 15px rgba(79,172,254,0.3)',
+        '&:hover': {
+          background: 'linear-gradient(45deg, #00f2fe, #4facfe)',
+          boxShadow: '0 6px 20px rgba(79,172,254,0.4)',
+          transform: 'translateY(-1px)'
+        },
+        '&:disabled': {
+          background: 'rgba(255,255,255,0.1)',
+          color: 'rgba(255,255,255,0.3)',
+          transform: 'none',
+          boxShadow: 'none'
+        }
+      }}
+    >
+      {addingEpisode ? (
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
+          <CircularProgress size={18} sx={{ color: 'white' }} />
+          Uploading Episode...
+        </Box>
+      ) : (
+        `Add Episode ${newEpisodeNumber} to Season ${newSeasonNumber}`
+      )}
+    </Button>
+  </DialogActions>
+</Dialog>
     </Box>
   );
 };

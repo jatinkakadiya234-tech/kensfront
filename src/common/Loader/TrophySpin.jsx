@@ -1,34 +1,44 @@
 import React from "react";
+import CircularProgress from "@mui/material/CircularProgress";
 
 const sizeMap = {
   small: 16,
-  medium: 20,
-  large: 28,
-  xl: 36,
+  medium: 24,
+  large: 36,
+  xl: 48,
 };
 
-function TrophySpin({ color = "#ffffff", size = "medium", text = "", textColor = "#ffffff" }) {
-  const px = typeof size === "number" ? size : (sizeMap[size] || sizeMap.medium);
+function TrophySpin({
+  color = "#ffffff",
+  size = "medium",
+  text = "",
+  textColor = "#ffffff",
+}) {
+  const px =
+    typeof size === "number" ? size : sizeMap[size] || sizeMap.medium;
 
   return (
-    <div className="flex items-center">
-      <span
-        aria-label="loading"
-        className="inline-block animate-spin rounded-full border-4 border-solid"
-        style={{
-          width: px,
-          height: px,
-          borderColor: "rgba(255,255,255,0.25)",
-          borderTopColor: color,
+    <div className="flex items-center space-x-2">
+      <CircularProgress
+        size={px}
+        thickness={4}
+        sx={{
+          color: color,
+          "& .MuiCircularProgress-circle": {
+            strokeLinecap: "round",
+          },
         }}
       />
-      {text ? (
-        <span className="ml-2 text-sm font-medium" style={{ color: textColor }}>{text}</span>
-      ) : null}
+      {text && (
+        <span
+          className="text-sm font-medium"
+          style={{ color: textColor }}
+        >
+          {text}
+        </span>
+      )}
     </div>
   );
 }
 
 export default TrophySpin;
-
-
