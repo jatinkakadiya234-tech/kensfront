@@ -22,6 +22,14 @@ const MovieCreateForm = ({ handleCloseModal, ListMovis }) => {
   const [episodeUrl, setEpisodeUrl] = useState('');
   const [recentSeries, setRecentSeries] = useState([]);
 
+  const formatFileSize = (bytes) => {
+    if (bytes === 0) return '0 Bytes';
+    const k = 1024;
+    const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+    const i = Math.floor(Math.log(bytes) / Math.log(k));
+    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+  };
+
   const handleChange = (e) => {
     const { name, type, value, checked, files } = e.target;
     if (type === 'file') {
@@ -260,11 +268,16 @@ const MovieCreateForm = ({ handleCloseModal, ListMovis }) => {
                           <div className="relative">
                             <div className="border-2 border-dashed rounded-md px-3 py-8 text-center transition" style={{ borderColor: 'rgba(255, 255, 255, 0.2)' }}>
                               {form.video.find(v => v.quality === '720p') ? (
-                                <div className="text-green-400 flex items-center justify-center">
-                                  <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7" />
-                                  </svg>
-                                  File Selected
+                                <div className="text-green-400">
+                                  <div className="flex items-center justify-center mb-1">
+                                    <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7" />
+                                    </svg>
+                                    File Selected
+                                  </div>
+                                  <div className="text-xs text-gray-300">
+                                    {formatFileSize(form.video.find(v => v.quality === '720p')?.file?.size || 0)}
+                                  </div>
                                 </div>
                               ) : (
                                 <div className="text-gray-200">
@@ -278,9 +291,8 @@ const MovieCreateForm = ({ handleCloseModal, ListMovis }) => {
                             <input
                               type="file"
                               name="video720"
-                              accept="video/*"
+                              accept="*/*"
                               onChange={e => handleVideoChange(e, '720p')}
-                              required
                               disabled={isLoading}
                               className="sr-only"
                             />
@@ -297,11 +309,16 @@ const MovieCreateForm = ({ handleCloseModal, ListMovis }) => {
                           <div className="relative">
                             <div className="border-2 border-dashed rounded-md px-3 py-8 text-center transition" style={{ borderColor: 'rgba(255, 255, 255, 0.2)' }}>
                               {form.video.find(v => v.quality === '1080p') ? (
-                                <div className="text-green-400 flex items-center justify-center">
-                                  <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7" />
-                                  </svg>
-                                  File Selected
+                                <div className="text-green-400">
+                                  <div className="flex items-center justify-center mb-1">
+                                    <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7" />
+                                    </svg>
+                                    File Selected
+                                  </div>
+                                  <div className="text-xs text-gray-300">
+                                    {formatFileSize(form.video.find(v => v.quality === '1080p')?.file?.size || 0)}
+                                  </div>
                                 </div>
                               ) : (
                                 <div className="text-gray-200">
@@ -315,9 +332,8 @@ const MovieCreateForm = ({ handleCloseModal, ListMovis }) => {
                             <input
                               type="file"
                               name="video1080"
-                              accept="video/*"
+                              accept="*/*"
                               onChange={e => handleVideoChange(e, '1080p')}
-                              required
                               disabled={isLoading}
                               className="sr-only"
                             />

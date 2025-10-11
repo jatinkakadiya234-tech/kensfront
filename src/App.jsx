@@ -35,26 +35,7 @@ import WebSeriesManagement from './Admin/page/WebSeriesManagement';
 
 function App() {
   // Auto-logout when the user leaves/closes the site (including refresh)
-  useEffect(() => {
-    const handleLeave = () => {
-      try {
-        localStorage.removeItem('token');
-        localStorage.removeItem('userinfo');
-      } catch (e) {
-        // ignore
-      }
-    };
 
-    // pagehide covers most cases (including bfcache and mobile Safari)
-    window.addEventListener('pagehide', handleLeave);
-    // beforeunload as a fallback
-    window.addEventListener('beforeunload', handleLeave);
-
-    return () => {
-      window.removeEventListener('pagehide', handleLeave);
-      window.removeEventListener('beforeunload', handleLeave);
-    };
-  }, []);
   const DeshbordLayouts = ({ children }) => (
     <>
       <DashboardLayout>
