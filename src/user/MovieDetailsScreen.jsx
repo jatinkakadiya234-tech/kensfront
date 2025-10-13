@@ -214,7 +214,7 @@ export default function MovieDetailsScreen() {
                 requestMobileFullscreenAndLandscape();
               }
             }}
-            controlsList={isPremium ? "nofullscreen download" : "nofullscreen nodownload"}
+            controlsList={isPremium ? "download" : "nodownload"}
           />
           
           {/* Popup for non-premium users after 15s */}
@@ -244,44 +244,15 @@ export default function MovieDetailsScreen() {
           )}
           
           {/* Center Lock Button (only when locked) */}
-          {locked && (
-            <button
-              onClick={() => setLocked(false)}
-              className="absolute z-40 flex items-center justify-center top-[80%] left-[1%] bg-[#37353E]/70 text-white p-2 rounded-full hover:bg-[#37353E]/90 focus:outline-none"
-              title="Unlock"
-            >
-              <FaLock size={20} color="white" />
-            </button>
-          )}
+       
           
-          {/* Fullscreen Button (top right) */}
-          <button
-            onClick={handleFullscreen}
-            className="absolute top-[80%] left-16 bg-[#37353E]/70 text-white p-2 rounded-full hover:bg-[#37353E]/90 focus:outline-none z-10"
-            title={isFullscreen ? 'Exit Fullscreen' : 'Fullscreen'}
-          >
-            {isFullscreen ? <FaCompress size={20} /> : <FaExpand size={20} />}
-          </button>
+  
+          
           
           {/* Lock Button (top right, only when unlocked) */}
-          {!locked && (
-            <button
-              onClick={() => setLocked(true)}
-              className="absolute top-[80%] left-[1%] bg-[#37353E]/70 text-white p-2 rounded-full hover:bg-[#37353E]/90 focus:outline-none z-10"
-              title="Lock"
-            >
-              <FaUnlock size={20} color="silver" />
-            </button>
-          )}
-          
+       
           {/* Overlay to block interaction when locked */}
-          {locked && (
-            <div
-              className="absolute inset-0 z-30"
-              style={{ pointerEvents: 'auto', background: 'transparent' }}
-              onClick={e => e.stopPropagation()}
-            ></div>
-          )}
+         
         </div>
       )}
     </div>
