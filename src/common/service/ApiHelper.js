@@ -22,6 +22,38 @@ export const Apihelper = {
     createMovise: (data) => {
         return axios.post(Url + "/movise/uplode", data)
     },
+
+    // Chunked upload functions
+    initializeChunkedUpload: (data) => {
+        return axios.post(Url + "/movise/upload/initialize", data)
+    },
+    
+    uploadChunk: (uploadId, chunkNumber, totalChunks, chunkFile, onProgress) => {
+        const formData = new FormData();
+        formData.append('chunk', chunkFile);
+        formData.append('uploadId', uploadId);
+        formData.append('chunkNumber', chunkNumber);
+        formData.append('totalChunks', totalChunks);
+        
+        return axios.post(Url + "/movise/upload/chunk", formData, {
+            headers: {
+                'Content-Type': 'multipart/form-data'
+            },
+            onUploadProgress: onProgress
+        });
+    },
+    
+    getUploadProgress: (uploadId) => {
+        return axios.get(Url + `/movise/upload/progress/${uploadId}`)
+    },
+    
+    createMovieWithChunks: (data) => {
+        return axios.post(Url + "/movise/upload/complete", data, {
+            headers: {
+                'Content-Type': 'multipart/form-data'
+            }
+        })
+    },
     AddSlider: (data) => {
         return axios.post(Url + "/slider/add", data)
     },

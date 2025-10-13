@@ -173,7 +173,6 @@ const MovieAnalytics = () => {
         fatchview()
     }, [])
 
-    console.log(toteleprimum)
 
     function formatNumber(num) {
         if (num >= 10000000) return (num / 10000000).toFixed(1) + 'Cr';

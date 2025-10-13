@@ -11,7 +11,6 @@ const Orders = () => {
   async function Listorder() {
     try {
       const res = await Apihelper.Liastorder();
-      console.log(res.data);
       setOrders(res.data || []);
     } catch (error) {
       console.log(error);

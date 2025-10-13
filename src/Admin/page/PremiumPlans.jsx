@@ -187,6 +187,7 @@ const PremiumPlans = () => {
                 >
                   <option value="" className="bg-black text-white">Select Plan</option>
                   <option value="monthly" className="bg-black text-white">Monthly</option>
+                  <option value="monthly" className="bg-black text-white">one time plane</option>
                  
                 </select>
                 {errors.name && <p className="mt-1 text-red-400 text-sm">{errors.name}</p>}

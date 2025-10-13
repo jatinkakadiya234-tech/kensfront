@@ -79,8 +79,7 @@ const MoviesList = () => {
   async function ListMovis(params) {
     try {
       const res = await Apihelper.ListMovise()
-      console.log(res.data.data.movies
-      );
+   
       setMovies(res?.data?.data?.movies)
     } catch (error) {
 

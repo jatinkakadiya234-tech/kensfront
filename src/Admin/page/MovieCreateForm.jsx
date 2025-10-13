@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import TrophySpin from "../../common/Loader/TrophySpin";
+import UploadProgress from "../../common/Loader/UploadProgress";
 import { Apihelper } from "../../common/service/ApiHelper";
 import { ToastContainer, toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
@@ -13,6 +14,14 @@ const MovieCreateForm = ({ handleCloseModal, ListMovis }) => {
     isPremium: false
   });
   const [isLoading, setIsLoading] = useState(false);
+
+  // Chunked upload state
+  const [uploadMode, setUploadMode] = useState('chunked'); // 'regular' | 'chunked'
+  const [uploadProgress, setUploadProgress] = useState({
+    720: { progress: 0, status: 'idle', fileName: '', uploadId: null },
+    1080: { progress: 0, status: 'idle', fileName: '', uploadId: null }
+  });
+  const [isUploading, setIsUploading] = useState(false);
 
   // Series state (minimal: title only, and quick add season/episode helpers)
   const [seriesTitle, setSeriesTitle] = useState('');
@@ -28,6 +37,124 @@ const MovieCreateForm = ({ handleCloseModal, ListMovis }) => {
     const sizes = ['Bytes', 'KB', 'MB', 'GB'];
     const i = Math.floor(Math.log(bytes) / Math.log(k));
     return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+  };
+
+  // Chunked upload utility functions
+  const CHUNK_SIZE = 5 * 1024 * 1024; // 5MB chunks
+
+  const splitFileIntoChunks = (file) => {
+    const chunks = [];
+    let start = 0;
+    let chunkIndex = 0;
+
+    while (start < file.size) {
+      const end = Math.min(start + CHUNK_SIZE, file.size);
+      const chunk = file.slice(start, end);
+      chunks.push({ chunk, index: chunkIndex });
+      start = end;
+      chunkIndex++;
+    }
+
+    return chunks;
+  };
+
+  const uploadFileInChunks = async (file, quality) => {
+    try {
+      const chunks = splitFileIntoChunks(file);
+      
+      // Initialize upload
+      const initResponse = await Apihelper.initializeChunkedUpload({
+        fileName: file.name,
+        fileSize: file.size,
+        fileType: file.type,
+        totalChunks: chunks.length
+      });
+
+      const uploadId = initResponse.data.uploadId;
+      
+      setUploadProgress(prev => ({
+        ...prev,
+        [quality]: {
+          ...prev[quality],
+          status: 'uploading',
+          fileName: file.name,
+          uploadId: uploadId,
+          progress: 0
+        }
+      }));
+
+      // Upload chunks sequentially
+      for (let i = 0; i < chunks.length; i++) {
+        const { chunk, index } = chunks[i];
+        
+        await Apihelper.uploadChunk(
+          uploadId,
+          index,
+          chunks.length,
+          chunk,
+          (progressEvent) => {
+            const chunkProgress = (progressEvent.loaded / progressEvent.total) * 100;
+            const overallProgress = ((index * 100 + chunkProgress) / chunks.length);
+            
+            setUploadProgress(prev => ({
+              ...prev,
+              [quality]: {
+                ...prev[quality],
+                progress: Math.round(overallProgress)
+              }
+            }));
+          }
+        );
+      }
+
+      // Poll for completion
+      const pollCompletion = async () => {
+        const maxAttempts = 60; // 5 minutes max
+        let attempts = 0;
+        
+        while (attempts < maxAttempts) {
+          try {
+            const progressResponse = await Apihelper.getUploadProgress(uploadId);
+            const { status, progress } = progressResponse.data;
+            
+            setUploadProgress(prev => ({
+              ...prev,
+              [quality]: {
+                ...prev[quality],
+                status: status,
+                progress: progress
+              }
+            }));
+
+            if (status === 'completed') {
+              return uploadId;
+            } else if (status === 'failed') {
+              throw new Error('Upload failed');
+            }
+            
+            await new Promise(resolve => setTimeout(resolve, 5000)); // Wait 5 seconds
+            attempts++;
+          } catch (error) {
+            console.error('Error polling upload progress:', error);
+            attempts++;
+          }
+        }
+        
+        throw new Error('Upload timeout');
+      };
+
+      return await pollCompletion();
+    } catch (error) {
+      setUploadProgress(prev => ({
+        ...prev,
+        [quality]: {
+          ...prev[quality],
+          status: 'failed',
+          progress: 0
+        }
+      }));
+      throw error;
+    }
   };
 
   const handleChange = (e) => {
@@ -54,6 +181,7 @@ const MovieCreateForm = ({ handleCloseModal, ListMovis }) => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     setIsLoading(true);
+    setIsUploading(true);
 
     try {
       if (contentType === 'series') {
@@ -69,27 +197,67 @@ const MovieCreateForm = ({ handleCloseModal, ListMovis }) => {
         return;
       }
 
-      const formData = new FormData();
-      formData.append('name', form.name);
-      formData.append('isPremium', form.isPremium);
+      if (uploadMode === 'chunked') {
+        // Chunked upload logic
+        if (!form.video.length || form.video.length < 2) {
+          throw new Error('Please select both 720p and 1080p videos');
+        }
 
-      // Append all images with field name 'image'
-      form.image.forEach(imgFile => {
-        formData.append('image', imgFile);
-      });
+        const video720 = form.video.find(v => v.quality === '720p')?.file;
+        const video1080 = form.video.find(v => v.quality === '1080p')?.file;
 
-      // Append all videos with field name 'video'
-      form.video.forEach(({ file }) => {
-        formData.append('video', file);
-      });
+        if (!video720 || !video1080) {
+          throw new Error('Please select both 720p and 1080p videos');
+        }
 
-      const res = await Apihelper.createMovise(formData);
-      console.log(res)
-      if (!res.status === 201) throw new Error('Upload failed');
-      ListMovis()
-      handleCloseModal()
-      toast.success('Movie created successfully');
+        // Upload both videos in parallel
+        const [uploadId720, uploadId1080] = await Promise.all([
+          uploadFileInChunks(video720, '720'),
+          uploadFileInChunks(video1080, '1080')
+        ]);
 
+        // Create movie with chunked upload
+        const formData = new FormData();
+        formData.append('name', form.name);
+        formData.append('isPremium', form.isPremium);
+        formData.append('uploadId720', uploadId720);
+        formData.append('uploadId1080', uploadId1080);
+        
+        // Append image
+        form.image.forEach(imgFile => {
+          formData.append('image', imgFile);
+        });
+
+        const res = await Apihelper.createMovieWithChunks(formData);
+        
+        if (res.status !== 201) throw new Error('Movie creation failed');
+        
+        ListMovis();
+        handleCloseModal();
+        toast.success('Movie created successfully with chunked upload');
+      } else {
+        // Regular upload logic
+        const formData = new FormData();
+        formData.append('name', form.name);
+        formData.append('isPremium', form.isPremium);
+
+        // Append all images with field name 'image'
+        form.image.forEach(imgFile => {
+          formData.append('image', imgFile);
+        });
+
+        // Append all videos with field name 'video'
+        form.video.forEach(({ file }) => {
+          formData.append('video', file);
+        });
+
+        const res = await Apihelper.createMovise(formData);
+        console.log(res)
+        if (!res.status === 201) throw new Error('Upload failed');
+        ListMovis()
+        handleCloseModal()
+        toast.success('Movie created successfully');
+      }
 
       // Reset form after successful submission
       setForm({
@@ -97,6 +265,12 @@ const MovieCreateForm = ({ handleCloseModal, ListMovis }) => {
         image: [],
         video: [],
         isPremium: false
+      });
+      
+      // Reset upload progress
+      setUploadProgress({
+        720: { progress: 0, status: 'idle', fileName: '', uploadId: null },
+        1080: { progress: 0, status: 'idle', fileName: '', uploadId: null }
       });
     } catch (err) {
       toast.error(`${err.message}`, {
@@ -112,6 +286,7 @@ const MovieCreateForm = ({ handleCloseModal, ListMovis }) => {
       handleCloseModal()
     } finally {
       setIsLoading(false);
+      setIsUploading(false);
     }
   };
 
@@ -190,6 +365,27 @@ const MovieCreateForm = ({ handleCloseModal, ListMovis }) => {
                 
               </select>
             </div>
+
+            {/* Upload Mode Switcher */}
+            {contentType === 'movie' && (
+              <div className="space-y-2">
+                <label className="block text-sm font-medium text-gray-200">Upload Mode</label>
+                <select
+                  value={uploadMode}
+                  onChange={e => setUploadMode(e.target.value)}
+                  disabled={isUploading}
+                  className="mt-1 block w-full px-3 py-2 border rounded-md shadow-sm focus:outline-none disabled:opacity-50 disabled:cursor-not-allowed"
+                  style={{ background: 'rgba(255, 255, 255, 0.9)', borderColor: '#e0e0e0', color: '#333' }}
+                >
+                  <option value="chunked">Chunked Upload (Recommended for Large Files)</option>
+                </select>
+                {uploadMode === 'chunked' && (
+                  <p className="text-xs text-gray-300 mt-1">
+                    Chunked upload provides better reliability for large video files with progress tracking.
+                  </p>
+                )}
+              </div>
+            )}
             {contentType === 'movie' && (
               <>
                 {/* Movie Name */}
@@ -344,6 +540,37 @@ const MovieCreateForm = ({ handleCloseModal, ListMovis }) => {
                   </div>
                 </div>
 
+                {/* Upload Progress Display */}
+                {uploadMode === 'chunked' && (uploadProgress[720].status !== 'idle' || uploadProgress[1080].status !== 'idle') && (
+                  <div className="space-y-4">
+                    <label className="block text-sm font-medium text-gray-200">Upload Progress</label>
+                    
+                    {/* 720p Progress */}
+                    {uploadProgress[720].status !== 'idle' && (
+                      <div>
+                        <div className="text-sm text-gray-300 mb-2">720p Video</div>
+                        <UploadProgress
+                          progress={uploadProgress[720].progress}
+                          fileName={uploadProgress[720].fileName}
+                          status={uploadProgress[720].status}
+                        />
+                      </div>
+                    )}
+                    
+                    {/* 1080p Progress */}
+                    {uploadProgress[1080].status !== 'idle' && (
+                      <div>
+                        <div className="text-sm text-gray-300 mb-2">1080p Video</div>
+                        <UploadProgress
+                          progress={uploadProgress[1080].progress}
+                          fileName={uploadProgress[1080].fileName}
+                          status={uploadProgress[1080].status}
+                        />
+                      </div>
+                    )}
+                  </div>
+                )}
+
                 {/* Premium Checkbox */}
                 <div className="flex items-center">
                   <input
@@ -368,9 +595,14 @@ const MovieCreateForm = ({ handleCloseModal, ListMovis }) => {
                     style={{ background: 'linear-gradient(45deg, #4facfe, #00f2fe)', boxShadow: '0 4px 15px rgba(79,172,254,0.3)' }}
                   >
                     {isLoading ? (
-                      <TrophySpin color="#ffffff" size="medium" text="Creating Movie..." textColor="#ffffff" />
+                      <TrophySpin 
+                        color="#ffffff" 
+                        size="medium" 
+                        text={uploadMode === 'chunked' ? "Uploading Movie..." : "Creating Movie..."} 
+                        textColor="#ffffff" 
+                      />
                     ) : (
-                      'Create Movie'
+                      uploadMode === 'chunked' ? 'Upload Movie (Chunked)' : 'Create Movie'
                     )}
                   </button>
                 </div>
