@@ -2,6 +2,7 @@ import React, { useRef, useState } from "react";
 import { FaLock, FaExpand, FaCompress } from "react-icons/fa";
 import { FaUnlock } from "react-icons/fa6";
 import { useParams, useNavigate } from "react-router-dom";
+import "./MovieDetailsScreen.css";
 
 export default function MovieDetailsScreen() {
   const [locked, setLocked] = useState(false);
@@ -10,10 +11,25 @@ export default function MovieDetailsScreen() {
   const [isPremium, setIsPremium] = useState(false);
   const [requestedMobileFullscreen, setRequestedMobileFullscreen] =
     useState(false);
+  const [showRotationHint, setShowRotationHint] = useState(false);
   const videoRef = useRef(null);
   const containerRef = useRef(null);
   const navigate = useNavigate();
   const url = useParams();
+
+  // Browser detection utilities
+  const getBrowserInfo = () => {
+    const ua = navigator.userAgent;
+    return {
+      isChrome: /Chrome/.test(ua) && !/Edge/.test(ua),
+      isFirefox: /Firefox/.test(ua),
+      isSafari: /Safari/.test(ua) && !/Chrome/.test(ua),
+      isEdge: /Edge/.test(ua),
+      isOpera: /Opera|OPR/.test(ua)
+    };
+  };
+
+  const browser = getBrowserInfo();
 
   // Dummy movie details for demonstration
   const movieDetails = {
@@ -67,45 +83,90 @@ export default function MovieDetailsScreen() {
   const isIOS = () =>
     /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
   const isAndroid = () => /Android/.test(navigator.userAgent);
+  const isMobile = () => isIOS() || isAndroid() || /Mobile|Tablet/.test(navigator.userAgent);
   const isSmallScreen = () =>
     window.matchMedia && window.matchMedia("(max-width: 768px)").matches;
+
+  const lockOrientation = async () => {
+    try {
+      // Different approaches for different browsers
+      if (browser.isChrome || browser.isEdge) {
+        // Chrome/Edge - use modern API
+        if (screen.orientation && screen.orientation.lock) {
+          await screen.orientation.lock("landscape-primary");
+        }
+      } else if (browser.isFirefox) {
+        // Firefox - use legacy API
+        if (screen.mozLockOrientation) {
+          screen.mozLockOrientation(["landscape-primary", "landscape-secondary"]);
+        }
+      } else if (browser.isSafari) {
+        // Safari - limited support, use CSS transforms
+        document.body.style.transform = "rotate(90deg)";
+        document.body.style.transformOrigin = "center";
+      } else {
+        // Fallback for other browsers
+        if (screen.orientation && screen.orientation.lock) {
+          await screen.orientation.lock("landscape");
+        } else if (screen.lockOrientation) {
+          screen.lockOrientation("landscape");
+        } else if (screen.mozLockOrientation) {
+          screen.mozLockOrientation("landscape");
+        } else if (screen.msLockOrientation) {
+          screen.msLockOrientation("landscape");
+        }
+      }
+    } catch (e) {
+      console.log("Orientation lock failed for", browser, ":", e);
+      // Fallback: Add CSS class for manual rotation
+      if (isMobile()) {
+        document.documentElement.classList.add('force-landscape');
+      }
+    }
+  };
 
   const requestMobileFullscreenAndLandscape = async () => {
     if (!videoRef.current) return;
     try {
-      // Prefer native video fullscreen on iOS
+      // Lock orientation first
+      await lockOrientation();
+      
+      // Then request fullscreen
       if (isIOS() && videoRef.current.webkitEnterFullscreen) {
         videoRef.current.webkitEnterFullscreen();
       } else if (!document.fullscreenElement && containerRef.current) {
-        if (containerRef.current.requestFullscreen) {
-          await containerRef.current.requestFullscreen();
-        } else if (containerRef.current.webkitRequestFullscreen) {
-          await containerRef.current.webkitRequestFullscreen();
-        } else if (containerRef.current.mozRequestFullScreen) {
-          await containerRef.current.mozRequestFullScreen();
-        } else if (containerRef.current.msRequestFullscreen) {
-          await containerRef.current.msRequestFullscreen();
+        const element = containerRef.current;
+        if (element.requestFullscreen) {
+          await element.requestFullscreen({ navigationUI: "hide" });
+        } else if (element.webkitRequestFullscreen) {
+          await element.webkitRequestFullscreen();
+        } else if (element.mozRequestFullScreen) {
+          await element.mozRequestFullScreen();
+        } else if (element.msRequestFullscreen) {
+          await element.msRequestFullscreen();
         }
       }
-      // Try to lock orientation to landscape when possible
-      if (screen.orientation && screen.orientation.lock) {
-        try {
-          await screen.orientation.lock("landscape");
-        } catch {}
-      }
+      
+      // Lock orientation again after fullscreen
+      setTimeout(() => lockOrientation(), 100);
       setRequestedMobileFullscreen(true);
-    } catch {}
+    } catch (e) {
+      console.log("Fullscreen failed:", e);
+    }
   };
 
   // Auto-attempt on first user gesture for mobile
   React.useEffect(() => {
-    if (!isSmallScreen() || !hasVideo) return;
+    if (!(isMobile() || isSmallScreen()) || !hasVideo) return;
     const container = containerRef.current;
     if (!container) return;
 
-    const onFirstInteract = () => {
+    const onFirstInteract = async () => {
       if (!requestedMobileFullscreen) {
-        requestMobileFullscreenAndLandscape();
+        setShowRotationHint(false);
+        setTimeout(() => {
+          requestMobileFullscreenAndLandscape();
+        }, 50);
       }
     };
 
@@ -114,28 +175,67 @@ export default function MovieDetailsScreen() {
       passive: true,
     });
     container.addEventListener("click", onFirstInteract, { once: true });
+    container.addEventListener("play", onFirstInteract, { once: true });
 
     return () => {
       container.removeEventListener("touchstart", onFirstInteract);
       container.removeEventListener("click", onFirstInteract);
+      container.removeEventListener("play", onFirstInteract);
     };
   }, [requestedMobileFullscreen, hasVideo]);
 
   React.useEffect(() => {
     const handleFullscreenChange = () => {
-      setIsFullscreen(!!document.fullscreenElement);
-      // If we just entered fullscreen on mobile, try locking orientation
-      if (!!document.fullscreenElement && isSmallScreen()) {
-        if (screen.orientation && screen.orientation.lock) {
-          screen.orientation.lock("landscape").catch(() => {});
-        }
+      const isInFullscreen = !!(document.fullscreenElement || 
+                               document.webkitFullscreenElement || 
+                               document.mozFullScreenElement || 
+                               document.msFullscreenElement);
+      setIsFullscreen(isInFullscreen);
+      
+      // Lock orientation when entering fullscreen on mobile
+      if (isInFullscreen && (isMobile() || isSmallScreen())) {
+        setTimeout(() => lockOrientation(), 100);
       }
     };
+    
+    // Listen to all fullscreen events
     document.addEventListener("fullscreenchange", handleFullscreenChange);
+    document.addEventListener("webkitfullscreenchange", handleFullscreenChange);
+    document.addEventListener("mozfullscreenchange", handleFullscreenChange);
+    document.addEventListener("MSFullscreenChange", handleFullscreenChange);
+    
     return () => {
       document.removeEventListener("fullscreenchange", handleFullscreenChange);
+      document.removeEventListener("webkitfullscreenchange", handleFullscreenChange);
+      document.removeEventListener("mozfullscreenchange", handleFullscreenChange);
+      document.removeEventListener("MSFullscreenChange", handleFullscreenChange);
     };
   }, []);
+
+  // Orientation change detection
+  React.useEffect(() => {
+    if (!isMobile() || !hasVideo) return;
+    
+    const handleOrientationChange = () => {
+      const isPortrait = window.matchMedia("(orientation: portrait)").matches;
+      setShowRotationHint(isPortrait && !isFullscreen);
+      
+      if (!isPortrait) {
+        setShowRotationHint(false);
+        setTimeout(() => lockOrientation(), 100);
+      }
+    };
+    
+    handleOrientationChange();
+    
+    window.addEventListener("orientationchange", handleOrientationChange);
+    window.addEventListener("resize", handleOrientationChange);
+    
+    return () => {
+      window.removeEventListener("orientationchange", handleOrientationChange);
+      window.removeEventListener("resize", handleOrientationChange);
+    };
+  }, [hasVideo, isFullscreen]);
 
   React.useEffect(() => {
     // Premium check logic from localStorage
@@ -172,11 +272,27 @@ export default function MovieDetailsScreen() {
     }
   }, [isPremium, videoUrl, hasVideo]);
 
+  // Auto-hide rotation hint after 5 seconds
+  React.useEffect(() => {
+    if (showRotationHint) {
+      const timer = setTimeout(() => {
+        setShowRotationHint(false);
+      }, 5000);
+      return () => clearTimeout(timer);
+    }
+  }, [showRotationHint]);
+
   return (
     <div
       ref={containerRef}
       className="relative w-[100%] h-screen overflow-hidden bg-[#37353E] flex flex-col justify-center items-center"
-      style={{ padding: 0, margin: 0 }}
+      style={{ 
+        padding: 0, 
+        margin: 0,
+        touchAction: 'manipulation',
+        userSelect: 'none',
+        WebkitUserSelect: 'none'
+      }}
     >
       {/* Movie Poster when no video available */}
       {!hasVideo && (
@@ -207,9 +323,18 @@ export default function MovieDetailsScreen() {
         </div>
       )}
 
+      {/* Rotation Hint */}
+      {showRotationHint && isMobile() && (
+        <div className="rotation-hint">
+          📱 ↻ Please rotate your device for better viewing
+        </div>
+      )}
+
       {/* Video Player when video is available */}
       {hasVideo && (
-        <div className="relative w-[100%] h-full flex justify-center items-center">
+        <div className={`relative w-[100%] h-full flex justify-center items-center no-zoom ${
+          isMobile() ? 'video-container' : ''
+        }`}>
           <video
             ref={videoRef}
             src={videoUrl}
@@ -219,8 +344,17 @@ export default function MovieDetailsScreen() {
             playsInline
             preload="metadata"
             muted={false}
+            webkit-playsinline="true"
+            x5-playsinline="true"
+            x5-video-player-type="h5"
+            x5-video-player-fullscreen="true"
             onCanPlay={() => videoRef.current?.play().catch(() => {})}
             onError={(e) => console.error("Video load error:", e)}
+            onPlay={() => {
+              if (isMobile() && !isFullscreen) {
+                setTimeout(() => lockOrientation(), 100);
+              }
+            }}
             onClick={() => {
               if (!isFullscreen) handleFullscreen();
             }}
