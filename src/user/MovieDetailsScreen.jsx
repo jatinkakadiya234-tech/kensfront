@@ -122,6 +122,15 @@ export default function MovieDetailsScreen() {
       console.log("Mobile fullscreen error:", error);
     }
   };
+useEffect(() => {
+  if (navigator.userAgent.includes("Telegram")) {
+    alert("Video fullscreen Telegram ma supported nathi. Click OK to open in Chrome.");
+    const currentUrl = window.location.href;
+    // Android Chrome redirect
+    window.location.href = "googlechrome://" + currentUrl.replace(/^https?:\/\//, "") 
+                          || currentUrl; // fallback
+  }
+}, []); // [] ensures it runs only once on mount
 
   useEffect(() => {
     if (!isSmallScreen() || !hasVideo) return;
