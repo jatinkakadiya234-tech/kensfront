@@ -14,51 +14,49 @@ export default function MovieDetailsScreen() {
   const navigate = useNavigate();
   const url = useParams();
 
-  // --- ✅ Telegram Detection + Chrome Redirect ---
+  // ✅ Telegram Detection + Chrome Redirect
   useEffect(() => {
     const ua = navigator.userAgent || "";
-    const isTelegram = ua.includes("Telegram");
+    const isTelegram = ua.toLowerCase().includes("telegram");
 
     if (isTelegram) {
-      // Current page URL
       const currentUrl = window.location.href;
-
-      // Try to open in Chrome (Android)
       const chromeUrl = "googlechrome://" + currentUrl.replace(/^https?:\/\//, "");
 
-      // Try to open external browser
+      // --- Try Chrome redirect (Android)
+      let redirected = false;
       try {
         window.location.href = chromeUrl;
-
-        // Fallback: after 1s, show manual button if redirect blocked
-        setTimeout(() => {
-          if (document.visibilityState === "visible") {
-            const confirmOpen = window.confirm(
-              "Telegram may block fullscreen video.\nDo you want to open this video in Chrome?"
-            );
-            if (confirmOpen) {
-              window.open(currentUrl, "_blank");
-            }
-          }
-        }, 1200);
-      } catch (e) {
-        console.log("Redirect error:", e);
+        redirected = true;
+      } catch (err) {
+        console.log("Chrome redirect error:", err);
       }
+
+      // --- Fallback: If Telegram blocked redirect, show manual open dialog
+      setTimeout(() => {
+        if (!document.hidden && !redirected) {
+          const confirmOpen = window.confirm(
+            "Telegram may block fullscreen video.\nOpen this in Chrome for best experience?"
+          );
+          if (confirmOpen) {
+            window.open(currentUrl, "_blank");
+          }
+        }
+      }, 1200);
     }
   }, []);
 
-  // Dummy movie details
+  // Dummy movie data
   const movieDetails = {
     title: "Movie Title",
     poster:
       "https://via.placeholder.com/500x750/37353E/FFFFFF?text=No+Poster+Available",
-    description:
-      "This is a movie description that would normally appear here.",
+    description: "This is a movie description that would normally appear here.",
     year: "2024",
     rating: "PG-13",
   };
 
-  // Get video URL from query param if present
+  // --- Get video param ---
   let videoUrl = "";
   try {
     const params = new URLSearchParams(window.location.search);
@@ -70,7 +68,7 @@ export default function MovieDetailsScreen() {
 
   const hasVideo = Boolean(videoUrl);
 
-  // --- Fullscreen logic remains same ---
+  // --- Fullscreen logic ---
   const handleFullscreen = async () => {
     const element = videoRef.current || containerRef.current;
     if (!element) return;
@@ -94,7 +92,6 @@ export default function MovieDetailsScreen() {
 
   const isIOS = () =>
     /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
-  const isAndroid = () => /Android/.test(navigator.userAgent);
   const isSmallScreen = () =>
     window.matchMedia && window.matchMedia("(max-width: 768px)").matches;
 
@@ -202,23 +199,17 @@ export default function MovieDetailsScreen() {
       className="relative w-[100%] h-screen overflow-hidden bg-[#37353E] flex flex-col justify-center items-center"
     >
       {!hasVideo && (
-        <div className="relative w-full h-full flex flex-col justify-center items-center bg-[#37353E] p-4">
-          <div className="max-w-md w-full flex flex-col items-center">
-            <div className="text-center text-white">
-              <div className="bg-[#2c5364] rounded-lg p-4 border border-[#4facfe]">
-                <div className="flex items-center justify-center mb-2">
-                  <img
-                    src="https://cdn-icons-png.flaticon.com/512/1661/1661901.png"
-                    alt="No Video"
-                    className="w-12 h-12"
-                  />
-                </div>
-                <h3 className="text-xl font-semibold mb-2">Video Not Available</h3>
-                <p className="text-sm text-gray-300">
-                  The video content for this movie is currently unavailable. Please check back later or browse other movies.
-                </p>
-              </div>
-            </div>
+        <div className="flex flex-col justify-center items-center h-full text-white">
+          <div className="bg-[#2c5364] rounded-lg p-4 border border-[#4facfe] text-center max-w-md">
+            <img
+              src="https://cdn-icons-png.flaticon.com/512/1661/1661901.png"
+              alt="No Video"
+              className="w-12 h-12 mx-auto mb-2"
+            />
+            <h3 className="text-xl font-semibold mb-2">Video Not Available</h3>
+            <p className="text-sm text-gray-300">
+              The video content for this movie is currently unavailable. Please check back later.
+            </p>
           </div>
         </div>
       )}
@@ -232,7 +223,6 @@ export default function MovieDetailsScreen() {
             controls={!locked}
             autoPlay
             playsInline
-            muted={false}
             preload="metadata"
             controlsList="nodownload"
             onPlay={() => {
@@ -267,14 +257,11 @@ export default function MovieDetailsScreen() {
                   Premium Upgrade Required
                 </h2>
                 <p className="mb-6 text-[#c3dce3]">
-                  This is a preview feature. Upgrade to premium to access the full content.
+                  This is a preview feature. Upgrade to premium to access full content.
                 </p>
                 <button
-                  className="bg-gradient-to-r from-[#4facfe] to-[#00f2fe] text-white px-8 py-3 rounded-full font-semibold transition-all hover:scale-105 hover:shadow-lg transform duration-300"
-                  onClick={() => {
-                    setShowPopup(false);
-                    navigate("/subscription");
-                  }}
+                  className="bg-gradient-to-r from-[#4facfe] to-[#00f2fe] text-white px-8 py-3 rounded-full font-semibold hover:scale-105 transition-all"
+                  onClick={() => navigate("/subscription")}
                 >
                   Upgrade Now
                 </button>
