@@ -226,11 +226,11 @@ export default function MovieDetailsScreen() {
               {/* No Video Available Message */}
               <div className="bg-[#2c5364] rounded-lg p-4 border border-[#4facfe]">
                 <div className="flex items-center justify-center mb-2">
-                 <img
+                 {/* <img
                     src="https://cdn-icons-png.flaticon.com/512/1661/1661901.png"
                     alt="No Video"
                     className="w-12 h-12"
-                  />
+                  /> */}
 
                   <video
                     className="w-12 h-12"
