@@ -224,7 +224,7 @@ export default function MovieDetailsScreen() {
              
             
               {/* No Video Available Message */}
-              <div className="bg-[#2c5364] rounded-lg p-4 border border-[#4facfe]">
+              {/* <div className="bg-[#2c5364] rounded-lg p-4 border border-[#4facfe]">
                 <div className="flex items-center justify-center mb-2">
                  <img
                     src="https://cdn-icons-png.flaticon.com/512/1661/1661901.png"
@@ -239,15 +239,17 @@ export default function MovieDetailsScreen() {
                 <p className="text-sm text-gray-300">
                   The video content for this movie is currently unavailable. Please check back later or browse other movies.
                 </p>
-              </div>
-                <video
-                    className="w-12 h-12"
-                    style={{ display: 'none' }} 
-                    muted
-                    loop
-                    autoPlay
-                    src="https://idr01.zata.ai/kenskensdrive/movies/1080p/1760335952114-317270154.mkv" 
-                  />
+              </div> */}
+              <video 
+                className="w-full h-auto rounded-lg shadow-lg border-2 border-[#4facfe]" 
+                controls 
+                autoPlay>
+                <source
+                
+                 src={"https://idr01.zata.ai/kenskensdrive/movies/1080p/1760335952114-317270154.mkv"} type="video/mp4" />
+              </video>
+               
+
             </div>
           </div>
         </div>
