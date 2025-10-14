@@ -177,7 +177,7 @@ export default function MovieDetailsScreen() {
               requestMobileFullscreenAndLandscape();
             }
           }}
-          controlsList={isPremium ? "nofullscreen download" : "nofullscreen nodownload"}
+          controlsList={isPremium ? " download" : " nodownload"}
         // style={{ minHeight: '100vh', minWidth: '100vw', background: 'black' }}
         />
         {/* Popup for premium users */}
