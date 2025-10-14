@@ -37,27 +37,45 @@ export default function MovieDetailsScreen() {
   const hasVideo = Boolean(videoUrl);
 
   // Fullscreen handlers
-  const handleFullscreen = () => {
-    if (!isFullscreen) {
-      if (containerRef.current.requestFullscreen) {
-        containerRef.current.requestFullscreen();
-      } else if (containerRef.current.webkitRequestFullscreen) {
-        containerRef.current.webkitRequestFullscreen();
-      } else if (containerRef.current.mozRequestFullScreen) {
-        containerRef.current.mozRequestFullScreen();
-      } else if (containerRef.current.msRequestFullscreen) {
-        containerRef.current.msRequestFullscreen();
+  const handleFullscreen = async () => {
+    const element = videoRef.current || containerRef.current;
+    if (!element) return;
+
+    try {
+      if (!isFullscreen) {
+        // For iOS Safari, use video element's native fullscreen
+        if (isIOS() && videoRef.current && videoRef.current.webkitEnterFullscreen) {
+          videoRef.current.webkitEnterFullscreen();
+          return;
+        }
+        
+        // For other browsers, use container fullscreen
+        if (element.requestFullscreen) {
+          await element.requestFullscreen();
+        } else if (element.webkitRequestFullscreen) {
+          await element.webkitRequestFullscreen();
+        } else if (element.webkitRequestFullScreen) {
+          await element.webkitRequestFullScreen();
+        } else if (element.mozRequestFullScreen) {
+          await element.mozRequestFullScreen();
+        } else if (element.msRequestFullscreen) {
+          await element.msRequestFullscreen();
+        }
+      } else {
+        if (document.exitFullscreen) {
+          await document.exitFullscreen();
+        } else if (document.webkitExitFullscreen) {
+          await document.webkitExitFullscreen();
+        } else if (document.webkitCancelFullScreen) {
+          await document.webkitCancelFullScreen();
+        } else if (document.mozCancelFullScreen) {
+          await document.mozCancelFullScreen();
+        } else if (document.msExitFullscreen) {
+          await document.msExitFullscreen();
+        }
       }
-    } else {
-      if (document.exitFullscreen) {
-        document.exitFullscreen();
-      } else if (document.webkitExitFullscreen) {
-        document.webkitExitFullscreen();
-      } else if (document.mozCancelFullScreen) {
-        document.mozCancelFullScreen();
-      } else if (document.msExitFullscreen) {
-        document.msExitFullscreen();
-      }
+    } catch (error) {
+      console.log('Fullscreen error:', error);
     }
   };
 
@@ -69,28 +87,39 @@ export default function MovieDetailsScreen() {
   const requestMobileFullscreenAndLandscape = async () => {
     if (!videoRef.current) return;
     try {
-      // Prefer native video fullscreen on iOS
+      // For iOS, always use native video fullscreen
       if (isIOS() && videoRef.current.webkitEnterFullscreen) {
         videoRef.current.webkitEnterFullscreen();
-      } else if (!document.fullscreenElement && containerRef.current) {
-        if (containerRef.current.requestFullscreen) {
-          await containerRef.current.requestFullscreen();
-        } else if (containerRef.current.webkitRequestFullscreen) {
-          await containerRef.current.webkitRequestFullscreen();
-        } else if (containerRef.current.mozRequestFullScreen) {
-          await containerRef.current.mozRequestFullScreen();
-        } else if (containerRef.current.msRequestFullscreen) {
-          await containerRef.current.msRequestFullscreen();
+        setRequestedMobileFullscreen(true);
+        return;
+      }
+      
+      // For Android and other mobile browsers
+      if (!document.fullscreenElement) {
+        const element = containerRef.current;
+        if (element.requestFullscreen) {
+          await element.requestFullscreen();
+        } else if (element.webkitRequestFullscreen) {
+          await element.webkitRequestFullscreen();
+        } else if (element.webkitRequestFullScreen) {
+          await element.webkitRequestFullScreen();
+        } else if (element.mozRequestFullScreen) {
+          await element.mozRequestFullScreen();
         }
       }
-      // Try to lock orientation to landscape when possible
+      
+      // Try to lock orientation to landscape
       if (screen.orientation && screen.orientation.lock) {
         try {
           await screen.orientation.lock('landscape');
-        } catch {}
+        } catch (e) {
+          console.log('Orientation lock failed:', e);
+        }
       }
       setRequestedMobileFullscreen(true);
-    } catch {}
+    } catch (error) {
+      console.log('Mobile fullscreen error:', error);
+    }
   };
 
   // Auto-attempt on first user gesture for mobile
@@ -116,17 +145,31 @@ export default function MovieDetailsScreen() {
 
   React.useEffect(() => {
     const handleFullscreenChange = () => {
-      setIsFullscreen(!!document.fullscreenElement);
+      const isInFullscreen = !!(document.fullscreenElement || 
+                               document.webkitFullscreenElement || 
+                               document.mozFullScreenElement || 
+                               document.msFullscreenElement);
+      setIsFullscreen(isInFullscreen);
+      
       // If we just entered fullscreen on mobile, try locking orientation
-      if (!!document.fullscreenElement && isSmallScreen()) {
+      if (isInFullscreen && isSmallScreen()) {
         if (screen.orientation && screen.orientation.lock) {
           screen.orientation.lock('landscape').catch(() => {});
         }
       }
     };
+    
+    // Add all possible fullscreen event listeners
     document.addEventListener('fullscreenchange', handleFullscreenChange);
+    document.addEventListener('webkitfullscreenchange', handleFullscreenChange);
+    document.addEventListener('mozfullscreenchange', handleFullscreenChange);
+    document.addEventListener('MSFullscreenChange', handleFullscreenChange);
+    
     return () => {
       document.removeEventListener('fullscreenchange', handleFullscreenChange);
+      document.removeEventListener('webkitfullscreenchange', handleFullscreenChange);
+      document.removeEventListener('mozfullscreenchange', handleFullscreenChange);
+      document.removeEventListener('MSFullscreenChange', handleFullscreenChange);
     };
   }, []);
 
@@ -208,13 +251,19 @@ export default function MovieDetailsScreen() {
             className="w-full h-full object-cover"
             controls={!locked}
             autoPlay
-            playsInline={false}
+            playsInline
+            webkit-playsinline="true"
+            muted={false}
+            preload="metadata"
             onPlay={() => {
               if (isSmallScreen() && !requestedMobileFullscreen) {
                 requestMobileFullscreenAndLandscape();
               }
             }}
-            controlsList={ "fullscreen nodownload"}
+            controlsList="nodownload"
+            allowFullScreen
+            webkitAllowFullScreen
+            mozAllowFullScreen
           />
           
           {/* Popup for non-premium users after 15s */}
@@ -243,15 +292,16 @@ export default function MovieDetailsScreen() {
             </div>
           )}
           
-          {/* Center Lock Button (only when locked) */}
-       
-          
-  
-          
-          
-          {/* Lock Button (top right, only when unlocked) */}
-       
-          {/* Overlay to block interaction when locked */}
+          {/* Fullscreen Button */}
+          {!locked && (
+            <button
+              onClick={handleFullscreen}
+              className="absolute top-4 right-4 z-10 bg-black bg-opacity-50 text-white p-2 rounded-full hover:bg-opacity-75 transition-all"
+              title={isFullscreen ? 'Exit Fullscreen' : 'Enter Fullscreen'}
+            >
+              {isFullscreen ? <FaCompress size={20} /> : <FaExpand size={20} />}
+            </button>
+          )}
          
         </div>
       )}
