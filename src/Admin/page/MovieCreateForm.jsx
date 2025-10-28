@@ -5,7 +5,7 @@ import { Apihelper } from "../../common/service/ApiHelper";
 import { ToastContainer, toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 
-const MovieCreateForm = ({ handleCloseModal, ListMovis }) => {
+const MovieCreateForm = ({ handleCloseModal, ListMovis, editMovie }) => {
   const [contentType, setContentType] = useState('movie'); // movie | series
   const [form, setForm] = useState({
     name: '',
@@ -14,6 +14,7 @@ const MovieCreateForm = ({ handleCloseModal, ListMovis }) => {
     isPremium: false
   });
   const [isLoading, setIsLoading] = useState(false);
+  const isEditMode = !!(editMovie && editMovie._id);
 
   // Chunked upload state
   const [uploadMode, setUploadMode] = useState('chunked'); // 'regular' | 'chunked'
@@ -22,6 +23,16 @@ const MovieCreateForm = ({ handleCloseModal, ListMovis }) => {
     1080: { progress: 0, status: 'idle', fileName: '', uploadId: null }
   });
   const [isUploading, setIsUploading] = useState(false);
+  // Prefill when editing
+  React.useEffect(() => {
+    if (!isEditMode) return;
+    setForm(prev => ({
+      ...prev,
+      name: editMovie?.name || '',
+      isPremium: !!editMovie?.isPremium,
+    }));
+  }, [isEditMode, editMovie]);
+
 
   // Series state (minimal: title only, and quick add season/episode helpers)
   const [seriesTitle, setSeriesTitle] = useState('');
@@ -197,31 +208,33 @@ const MovieCreateForm = ({ handleCloseModal, ListMovis }) => {
         return;
       }
 
-      if (uploadMode === 'chunked') {
-        // Chunked upload logic
-        if (!form.video.length || form.video.length < 2) {
-          throw new Error('Please select both 720p and 1080p videos');
-        }
-
+      if (!isEditMode && uploadMode === 'chunked') {
+        // Chunked upload logic (videos optional)
         const video720 = form.video.find(v => v.quality === '720p')?.file;
         const video1080 = form.video.find(v => v.quality === '1080p')?.file;
 
-        if (!video720 || !video1080) {
-          throw new Error('Please select both 720p and 1080p videos');
+        let uploadId720 = null;
+        let uploadId1080 = null;
+
+        if (video720 && video1080) {
+          const results = await Promise.all([
+            uploadFileInChunks(video720, '720'),
+            uploadFileInChunks(video1080, '1080')
+          ]);
+          uploadId720 = results[0];
+          uploadId1080 = results[1];
+        } else if (video720) {
+          uploadId720 = await uploadFileInChunks(video720, '720');
+        } else if (video1080) {
+          uploadId1080 = await uploadFileInChunks(video1080, '1080');
         }
 
-        // Upload both videos in parallel
-        const [uploadId720, uploadId1080] = await Promise.all([
-          uploadFileInChunks(video720, '720'),
-          uploadFileInChunks(video1080, '1080')
-        ]);
-
-        // Create movie with chunked upload
+        // Create movie with chunked upload (videos optional)
         const formData = new FormData();
         formData.append('name', form.name);
         formData.append('isPremium', form.isPremium);
-        formData.append('uploadId720', uploadId720);
-        formData.append('uploadId1080', uploadId1080);
+        if (uploadId720) formData.append('uploadId720', uploadId720);
+        if (uploadId1080) formData.append('uploadId1080', uploadId1080);
         
         // Append image
         form.image.forEach(imgFile => {
@@ -229,13 +242,11 @@ const MovieCreateForm = ({ handleCloseModal, ListMovis }) => {
         });
 
         const res = await Apihelper.createMovieWithChunks(formData);
-        
         if (res.status !== 201) throw new Error('Movie creation failed');
-        
         ListMovis();
         handleCloseModal();
-        toast.success('Movie created successfully with chunked upload');
-      } else {
+        toast.success('Movie created successfully');
+      } else if (!isEditMode) {
         // Regular upload logic
         const formData = new FormData();
         formData.append('name', form.name);
@@ -257,6 +268,42 @@ const MovieCreateForm = ({ handleCloseModal, ListMovis }) => {
         ListMovis()
         handleCloseModal()
         toast.success('Movie created successfully');
+      } else if (isEditMode) {
+        // Edit mode: support optional video replacement via chunked upload
+        let uploadId720 = null;
+        let uploadId1080 = null;
+
+        const new720 = form.video.find(v => v.quality === '720p')?.file;
+        const new1080 = form.video.find(v => v.quality === '1080p')?.file;
+        
+        if (new720 || new1080) {
+          if (new720) uploadId720 = await uploadFileInChunks(new720, '720');
+          if (new1080) uploadId1080 = await uploadFileInChunks(new1080, '1080');
+
+          const fd = new FormData();
+          fd.append('name', form.name);
+          fd.append('isPremium', form.isPremium);
+          if (uploadId720) fd.append('uploadId720', uploadId720);
+          if (uploadId1080) fd.append('uploadId1080', uploadId1080);
+          if (form.image && form.image.length > 0) {
+            form.image.forEach(imgFile => fd.append('image', imgFile));
+          }
+          const res = await Apihelper.updateMovieWithChunks(editMovie._id, fd);
+          if (!(res.status === 200)) throw new Error('Update failed');
+        } else {
+          // No new videos; only meta update (and optional poster)
+          const formData = new FormData();
+          formData.append('name', form.name);
+          formData.append('isPremium', form.isPremium);
+          if (form.image && form.image.length > 0) {
+            form.image.forEach(imgFile => formData.append('image', imgFile));
+          }
+          const res = await Apihelper.UpdateMovise(editMovie._id, formData);
+          if (!(res.status === 200)) throw new Error('Update failed');
+        }
+        ListMovis();
+        handleCloseModal();
+        toast.success('Movie updated successfully');
       }
 
       // Reset form after successful submission
@@ -480,7 +527,7 @@ const MovieCreateForm = ({ handleCloseModal, ListMovis }) => {
                                   <svg className="mx-auto h-12 w-12 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
                                   </svg>
-                                  <span className="mt-2 block text-sm">Upload 720p Video</span>
+                                  <span className="mt-2 block text-sm">{isEditMode ? 'Replace 720p Video (optional)' : 'Upload 720p Video'}</span>
                                 </div>
                               )}
                             </div>
@@ -495,6 +542,9 @@ const MovieCreateForm = ({ handleCloseModal, ListMovis }) => {
                           </div>
                         </label>
                       </div>
+                      {isEditMode && editMovie?.qualities?.["720p"] && (
+                        <div className="text-xs text-gray-300 mt-2 break-all">Current: {editMovie.qualities["720p"]}</div>
+                      )}
                     </div>
 
                     {/* 1080p */}
@@ -521,7 +571,7 @@ const MovieCreateForm = ({ handleCloseModal, ListMovis }) => {
                                   <svg className="mx-auto h-12 w-12 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
                                   </svg>
-                                  <span className="mt-2 block text-sm">Upload 1080p Video</span>
+                                  <span className="mt-2 block text-sm">{isEditMode ? 'Replace 1080p Video (optional)' : 'Upload 1080p Video'}</span>
                                 </div>
                               )}
                             </div>
@@ -536,6 +586,9 @@ const MovieCreateForm = ({ handleCloseModal, ListMovis }) => {
                           </div>
                         </label>
                       </div>
+                      {isEditMode && editMovie?.qualities?.["1080p"] && (
+                        <div className="text-xs text-gray-300 mt-2 break-all">Current: {editMovie.qualities["1080p"]}</div>
+                      )}
                     </div>
                   </div>
                 </div>

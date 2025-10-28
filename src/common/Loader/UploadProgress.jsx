@@ -127,3 +127,4 @@ const UploadProgress = ({ progress, fileName, status, uploadedChunks, totalChunk
 };
 
 export default UploadProgress;
+

@@ -39,28 +39,17 @@ const PremiumPlans = () => {
     if (name.startsWith('features.')) {
       const featureName = name.split('.')[1];
       setFormData(prev => ({
-        ...prev,  
+        ...prev,
         features: {
           ...prev.features,
           [featureName]: type === 'checkbox' ? checked : parseInt(value) || 0
         }
       }));
     } else {
-      let updatedData = {
-        ...formData,
+      setFormData(prev => ({
+        ...prev,
         [name]: type === 'checkbox' ? checked : value
-      };
-      
-      // Auto-set duration based on plan selection
-      if (name === 'name') {
-        if (value === 'monthly') {
-          updatedData.durationInDays = '30';
-        } else if (value === 'unlimited') {
-          updatedData.durationInDays = 'unlimited';
-        }
-      }
-      
-      setFormData(updatedData);
+      }));
     }
   };
 
@@ -73,7 +62,7 @@ const PremiumPlans = () => {
     if (!formData.price || formData.price <= 0) {
       newErrors.price = 'Valid price is required';
     }
-    if (!formData.durationInDays || (formData.durationInDays !== 'unlimited' && formData.durationInDays <= 0)) {
+    if (!formData.durationInDays || formData.durationInDays <= 0) {
       newErrors.durationInDays = 'Valid duration is required';
     }
     if (formData.features.maxDevices <= 0) {
@@ -198,7 +187,8 @@ const PremiumPlans = () => {
                 >
                   <option value="" className="bg-black text-white">Select Plan</option>
                   <option value="monthly" className="bg-black text-white">Monthly</option>
-                  <option value="unlimited" className="bg-black text-white">Unlimited</option>
+                  <option value="yearly" className="bg-black text-white">Unlimited</option>
+                 
                 </select>
                 {errors.name && <p className="mt-1 text-red-400 text-sm">{errors.name}</p>}
               </div>
@@ -226,14 +216,13 @@ const PremiumPlans = () => {
                   Duration (Days) <span className="text-blue-400">*</span>
                 </label>
                 <input
-                  type={formData.name === 'unlimited' ? 'text' : 'number'}
+                  type="number"
                   name="durationInDays"
                   value={formData.durationInDays}
                   onChange={handleChange}
-                  readOnly={formData.name === 'monthly' || formData.name === 'unlimited'}
-                  className={`w-full px-4 py-2 rounded-md text-white focus:outline-none ${(formData.name === 'monthly' || formData.name === 'unlimited') ? 'cursor-not-allowed opacity-70' : ''}`}
+                  className={`w-full px-4 py-2 rounded-md text-white focus:outline-none`}
                   style={{ background: 'rgba(0,0,0,0.5)', border: `1px solid ${errors.durationInDays ? '#ef4444' : 'rgba(79, 172, 254, 0.4)'}` }}
-                  placeholder={formData.name === 'unlimited' ? 'Unlimited' : 'Enter duration in days'}
+                  placeholder="Enter duration in days"
                 />
                 {errors.durationInDays && <p className="mt-1 text-red-400 text-sm">{errors.durationInDays}</p>}
               </div>
@@ -363,11 +352,9 @@ const PremiumPlans = () => {
                 <div className="p-6">
                   <div className="flex justify-between items-start mb-4">
                     <div>
-                      <h3 className="text-lg md:text-xl font-bold text-white mb-1">{plan.name}</h3>
+                      <h3 className="text-lg md:text-xl font-bold text-white mb-1">{plan.name === "monthly" ? "Monthly" : "Unlimited"}</h3>
                       <p className="text-xl md:text-2xl font-bold" style={{ color: '#4facfe' }}>₹{plan.price}</p>
-                      <p className="text-sm text-gray-400">
-                        {plan.durationInDays === 'unlimited' ? 'Unlimited' : `${plan.durationInDays} days`}
-                      </p>
+                      <p className="text-sm text-gray-400">{plan.durationInDays === 30 ? "30 days" : "Unlimited"}</p>
                     </div>
                     <div className="flex space-x-2">
                       <button

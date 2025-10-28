@@ -55,6 +55,7 @@ import {
 import { Apihelper } from '../../common/service/ApiHelper';
 import { toast } from 'react-toastify';
 import TrophySpin from '../../common/Loader/TrophySpin';
+import UploadProgress from '../../common/Loader/UploadProgress';
 import { CloudUploadIcon } from 'lucide-react';
 
 const WebSeriesManagement = () => {
@@ -64,6 +65,7 @@ const WebSeriesManagement = () => {
   const [creatingSeries, setCreatingSeries] = useState(false);
   const [addingSeason, setAddingSeason] = useState(false);
   const [addingEpisode, setAddingEpisode] = useState(false);
+  const [isUploading, setIsUploading] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
   const [selectedSeries, setSelectedSeries] = useState(null);
   const [expandedSeries, setExpandedSeries] = useState({});
@@ -76,6 +78,7 @@ const WebSeriesManagement = () => {
   const [createSeriesDialog, setCreateSeriesDialog] = useState(false);
   const [addSeasonDialog, setAddSeasonDialog] = useState(false);
   const [addEpisodeDialog, setAddEpisodeDialog] = useState(false);
+  const [editEpisodeDialog, setEditEpisodeDialog] = useState(false);
   
   // Form states
   const [newSeriesTitle, setNewSeriesTitle] = useState('');
@@ -83,6 +86,14 @@ const WebSeriesManagement = () => {
   const [newEpisodeNumber, setNewEpisodeNumber] = useState('');
   const [video720, setVideo720] = useState(null);
   const [video1080, setVideo1080] = useState(null);
+  const [wsUploadProgress, setWsUploadProgress] = useState({
+    720: { progress: 0, status: 'idle', fileName: '', uploadId: null },
+    1080: { progress: 0, status: 'idle', fileName: '', uploadId: null }
+  });
+  const [editSeasonNum, setEditSeasonNum] = useState('');
+  const [editEpisodeNum, setEditEpisodeNum] = useState('');
+  const [editVideo720, setEditVideo720] = useState(null);
+  const [editVideo1080, setEditVideo1080] = useState(null);
 
   const WATCH_BASE = 'https://kensdrive.co.in/watch?video=';
 
@@ -271,29 +282,120 @@ const WebSeriesManagement = () => {
     }
   };
 
-  // Step 4: Add Episode to Season
+  const CHUNK_SIZE = 5 * 1024 * 1024; // 5MB
+
+  const splitFileIntoChunks = (file) => {
+    const chunks = [];
+    let start = 0;
+    let index = 0;
+    while (start < file.size) {
+      const end = Math.min(start + CHUNK_SIZE, file.size);
+      chunks.push({ chunk: file.slice(start, end), index });
+      start = end;
+      index++;
+    }
+    return chunks;
+  };
+
+  const wsUploadFileInChunks = async (file, quality) => {
+    const chunks = splitFileIntoChunks(file);
+    const init = await Apihelper.wsInitializeChunkedUpload({
+      fileName: file.name,
+      fileSize: file.size,
+      totalChunks: chunks.length
+    });
+    const uploadId = init.data.uploadId;
+
+    setWsUploadProgress(prev => ({
+      ...prev,
+      [quality]: { progress: 0, status: 'uploading', fileName: file.name, uploadId }
+    }));
+
+    for (let i = 0; i < chunks.length; i++) {
+      const { chunk, index } = chunks[i];
+      await Apihelper.wsUploadChunk(uploadId, index, chunks.length, chunk, (pe) => {
+        const chunkProgress = (pe.loaded / pe.total) * 100;
+        const overall = ((index * 100 + chunkProgress) / chunks.length);
+        setWsUploadProgress(prev => ({
+          ...prev,
+          [quality]: { ...prev[quality], progress: Math.round(overall) }
+        }));
+      });
+    }
+
+    // poll for completion
+    const maxAttempts = 60;
+    let attempts = 0;
+    while (attempts < maxAttempts) {
+      const resp = await Apihelper.wsGetUploadProgress(uploadId);
+      const { status, progress } = resp.data;
+      setWsUploadProgress(prev => ({ ...prev, [quality]: { ...prev[quality], progress, status } }));
+      if (status === 'completed') return uploadId;
+      if (status === 'failed') throw new Error('Upload failed');
+      await new Promise(r => setTimeout(r, 3000));
+      attempts++;
+    }
+    throw new Error('Upload timeout');
+  };
+  const wsEditUploadFileInChunks = async (file, quality) => {
+    const chunks = splitFileIntoChunks(file);
+    const init = await Apihelper.wsInitializeChunkedUpload({
+      fileName: file.name,
+      fileSize: file.size,
+      totalChunks: chunks.length
+    });
+    const uploadId = init.data.uploadId;
+    setWsUploadProgress(prev => ({ ...prev, [quality]: { progress: 0, status: 'uploading', fileName: file.name, uploadId } }));
+    for (let i = 0; i < chunks.length; i++) {
+      const { chunk, index } = chunks[i];
+      await Apihelper.wsUploadChunk(uploadId, index, chunks.length, chunk, () => {});
+    }
+    const maxAttempts = 60; let attempts = 0;
+    while (attempts < maxAttempts) {
+      const resp = await Apihelper.wsGetUploadProgress(uploadId);
+      const { status } = resp.data;
+      if (status === 'completed') return uploadId;
+      if (status === 'failed') throw new Error('Upload failed');
+      await new Promise(r => setTimeout(r, 3000));
+      attempts++;
+    }
+    throw new Error('Upload timeout');
+  };
+
+  // Step 4: Add Episode to Season (chunked, optional qualities)
   const addEpisodeToSeason = async () => {
     try {
       setAddingEpisode(true);
-      if (!selectedSeries || !newSeasonNumber || !newEpisodeNumber || !video720 || !video1080) {
-        toast.error('Please select series, season, episode number, and both 720p & 1080p files');
+      if (!selectedSeries || !newSeasonNumber || !newEpisodeNumber) {
+        toast.error('Please select series, season and episode number');
         return;
       }
 
-      console.log('🔄 Adding episode to season with files:', {
-        seriesId: selectedSeries._id,
-        seasonNumber: parseInt(newSeasonNumber),
-        episodeNumber: parseInt(newEpisodeNumber),
-        video720: video720?.name,
-        video1080: video1080?.name,
-      });
-      
-      const response = await Apihelper.addEpisodeToSeason(selectedSeries._id, parseInt(newSeasonNumber), {
-        episodeNumber: parseInt(newEpisodeNumber),
-        video720,
-        video1080,
-      });
-      
+      setIsUploading(true);
+      let uploadId720 = null;
+      let uploadId1080 = null;
+      if (video720 && video1080) {
+        const [id720, id1080] = await Promise.all([
+          wsUploadFileInChunks(video720, 720),
+          wsUploadFileInChunks(video1080, 1080)
+        ]);
+        uploadId720 = id720; uploadId1080 = id1080;
+      } else if (video720) {
+        uploadId720 = await wsUploadFileInChunks(video720, 720);
+      } else if (video1080) {
+        uploadId1080 = await wsUploadFileInChunks(video1080, 1080);
+      }
+
+      const payload = { episodeNumber: parseInt(newEpisodeNumber) };
+      if (uploadId720) payload.uploadId720 = uploadId720;
+      if (uploadId1080) payload.uploadId1080 = uploadId1080;
+
+      const response = await Apihelper.addEpisodeWithChunks(
+        selectedSeries._id,
+        parseInt(newSeasonNumber),
+        payload
+      );
+
       console.log('✅ Episode added:', response.data);
       toast.success(`Episode ${newEpisodeNumber} added to Season ${newSeasonNumber}!`);
       
@@ -301,6 +403,10 @@ const WebSeriesManagement = () => {
       setVideo720(null);
       setVideo1080(null);
       setAddEpisodeDialog(false);
+      setWsUploadProgress({
+        720: { progress: 0, status: 'idle', fileName: '', uploadId: null },
+        1080: { progress: 0, status: 'idle', fileName: '', uploadId: null }
+      });
       
       // Reload the list
       await loadAllSeries();
@@ -311,6 +417,7 @@ const WebSeriesManagement = () => {
     }
     finally {
       setAddingEpisode(false);
+      setIsUploading(false);
     }
   };
 
@@ -327,6 +434,14 @@ const WebSeriesManagement = () => {
     if (file) {
       setVideo1080(file);
     }
+  };
+  const handleEditFile720Change = (event) => {
+    const file = event.target.files?.[0];
+    if (file) setEditVideo720(file);
+  };
+  const handleEditFile1080Change = (event) => {
+    const file = event.target.files?.[0];
+    if (file) setEditVideo1080(file);
   };
 
   // Reset episode form
@@ -728,7 +843,7 @@ const WebSeriesManagement = () => {
                                                 </TableCell>
                                                 <TableCell sx={{ color: 'white', borderColor: '#333' }}>
                                                   <Box sx={{ display: 'flex', gap: 1 }}>
-                                                    <Button
+                                                <Button
                                                       size="small"
                                                       color="error"
                                                       variant="outlined"
@@ -738,6 +853,22 @@ const WebSeriesManagement = () => {
                                                     >
                                                       Delete
                                                     </Button>
+                                                <Button
+                                                  size="small"
+                                                  variant="outlined"
+                                                  startIcon={<EditIcon />}
+                                                  onClick={() => {
+                                                    setSelectedSeries(seriesItem);
+                                                    setEditSeasonNum(String(season.seasonNumber));
+                                                    setEditEpisodeNum(String(episode.episodeNumber));
+                                                    setEditVideo720(null);
+                                                    setEditVideo1080(null);
+                                                    setEditEpisodeDialog(true);
+                                                  }}
+                                                  sx={{ fontSize: '0.7rem', borderColor: '#4facfe', color: '#4facfe' }}
+                                                >
+                                                  Edit
+                                                </Button>
                                                   </Box>
                                                 </TableCell>
                                               </TableRow>
@@ -1045,17 +1176,7 @@ const WebSeriesManagement = () => {
       <Grid item xs={12}>
         <Typography variant="h6" sx={{ color: '#e2e8f0', mb: 2, fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: 1 }}>
           <CloudUploadIcon sx={{ fontSize: 20, color: '#4facfe' }} />
-          Upload Video Files
-          <Chip 
-            label="Both qualities required" 
-            size="small" 
-            sx={{ 
-              ml: 1,
-              backgroundColor: 'rgba(79,172,254,0.2)',
-              color: '#4facfe',
-              fontWeight: 'bold'
-            }} 
-          />
+          Upload Video Files (optional 720p/1080p)
         </Typography>
       </Grid>
 
@@ -1284,7 +1405,7 @@ const WebSeriesManagement = () => {
     <Button 
       onClick={addEpisodeToSeason} 
       variant="contained" 
-      disabled={!newSeasonNumber || !newEpisodeNumber || !video720 || !video1080 || addingEpisode}
+      disabled={!newSeasonNumber || !newEpisodeNumber || addingEpisode || isUploading}
       sx={{
         background: 'linear-gradient(45deg, #4facfe, #00f2fe)',
         borderRadius: 2,
@@ -1315,6 +1436,104 @@ const WebSeriesManagement = () => {
       ) : (
         `Add Episode ${newEpisodeNumber} to Season ${newSeasonNumber}`
       )}
+    </Button>
+  </DialogActions>
+
+  {/* Upload Progress */}
+  {(wsUploadProgress[720].status !== 'idle' || wsUploadProgress[1080].status !== 'idle') && (
+    <Box sx={{ p: 3, pt: 0 }}>
+      <Typography variant="body2" sx={{ color: '#cbd5e1', mb: 1 }}>Upload Progress</Typography>
+      {wsUploadProgress[720].status !== 'idle' && (
+        <UploadProgress
+          progress={wsUploadProgress[720].progress}
+          fileName={wsUploadProgress[720].fileName}
+          status={wsUploadProgress[720].status}
+        />
+      )}
+      {wsUploadProgress[1080].status !== 'idle' && (
+        <UploadProgress
+          progress={wsUploadProgress[1080].progress}
+          fileName={wsUploadProgress[1080].fileName}
+          status={wsUploadProgress[1080].status}
+        />
+      )}
+    </Box>
+  )}
+</Dialog>
+
+{/* Edit Episode Dialog */}
+<Dialog 
+  open={editEpisodeDialog} 
+  onClose={() => setEditEpisodeDialog(false)} 
+  fullWidth 
+  maxWidth="sm"
+  PaperProps={{ sx: { background: 'rgba(15,32,39,0.98)', border: '1px solid rgba(79,172,254,0.25)', color: 'white' } }}
+>
+  <DialogTitle>Edit Episode (replace qualities optional)</DialogTitle>
+  <DialogContent dividers>
+    <Grid container spacing={2}>
+      <Grid item xs={6}>
+        <TextField
+          label="Season"
+          type="number"
+          value={editSeasonNum}
+          onChange={(e)=>setEditSeasonNum(e.target.value)}
+          fullWidth
+          size="small"
+        />
+      </Grid>
+      <Grid item xs={6}>
+        <TextField
+          label="Episode"
+          type="number"
+          value={editEpisodeNum}
+          onChange={(e)=>setEditEpisodeNum(e.target.value)}
+          fullWidth
+          size="small"
+        />
+      </Grid>
+      <Grid item xs={12}>
+        <Typography variant="body2" sx={{ mb: 1 }}>Replace 720p (optional)</Typography>
+        <Button variant="outlined" component="label" fullWidth>
+          {editVideo720 ? editVideo720.name : 'Select 720p file'}
+          <input type="file" hidden accept="video/*" onChange={handleEditFile720Change} />
+        </Button>
+      </Grid>
+      <Grid item xs={12}>
+        <Typography variant="body2" sx={{ mb: 1 }}>Replace 1080p (optional)</Typography>
+        <Button variant="outlined" component="label" fullWidth>
+          {editVideo1080 ? editVideo1080.name : 'Select 1080p file'}
+          <input type="file" hidden accept="video/*" onChange={handleEditFile1080Change} />
+        </Button>
+      </Grid>
+    </Grid>
+  </DialogContent>
+  <DialogActions>
+    <Button onClick={()=>setEditEpisodeDialog(false)} sx={{ color: '#cbd5e1' }}>Cancel</Button>
+    <Button
+      variant="contained"
+      onClick={async ()=>{
+        try {
+          if (!selectedSeries || !editSeasonNum || !editEpisodeNum) return;
+          let uploadId720=null, uploadId1080=null;
+          if (editVideo720) uploadId720 = await wsEditUploadFileInChunks(editVideo720, 720);
+          if (editVideo1080) uploadId1080 = await wsEditUploadFileInChunks(editVideo1080, 1080);
+          const payload = {};
+          if (uploadId720) payload.uploadId720 = uploadId720;
+          if (uploadId1080) payload.uploadId1080 = uploadId1080;
+          const res = await Apihelper.updateEpisodeWithChunks(selectedSeries._id, Number(editSeasonNum), Number(editEpisodeNum), payload);
+          if (res.status === 200) {
+            toast.success('Episode updated');
+            setEditEpisodeDialog(false);
+            await loadAllSeries();
+          }
+        } catch (e) {
+          toast.error(e?.response?.data?.message || 'Failed to update episode');
+        }
+      }}
+      sx={{ background: 'linear-gradient(45deg,#4facfe,#00f2fe)' }}
+    >
+      Save Changes
     </Button>
   </DialogActions>
 </Dialog>

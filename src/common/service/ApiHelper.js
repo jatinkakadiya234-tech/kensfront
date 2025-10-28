@@ -54,6 +54,11 @@ export const Apihelper = {
             }
         })
     },
+    updateMovieWithChunks: (id, data) => {
+        return axios.post(Url + `/movise/movies/${id}/update-chunks`, data, {
+            headers: { 'Content-Type': 'multipart/form-data' }
+        })
+    },
     AddSlider: (data) => {
         return axios.post(Url + "/slider/add", data)
     },
@@ -62,6 +67,10 @@ export const Apihelper = {
     },
     DeleteMovise: (id) => {
         return axios.delete(Url + `/movise/delete/${id}`)
+    },
+    UpdateMovise: (id, data) => {
+        // If data is FormData, axios will set headers automatically
+        return axios.put(Url + `/movise/movies/${id}`, data)
     },
     createplan: (data) => {
         return axios.post(Url + `/premium/create`, data)
@@ -169,32 +178,66 @@ export const Apihelper = {
 
     // web series api
     listWebSeries: () => {
-        return axios.get(Url + "/api/webseries");
+        return axios.get(Url + "/webseries");
     },
     createWebSeries: (payload) => {
-        return axios.post(Url + "/api/webseries", payload);
+        return axios.post(Url + "/webseries", payload);
     },
     addSeasonToSeries: (seriesId, seasonNumber) => {
-        return axios.post(Url + `/api/webseries/${seriesId}/seasons`, { seasonNumber });
+        return axios.post(Url + `/webseries/${seriesId}/seasons`, { seasonNumber });
     },
     addEpisodeToSeason: (seriesId, seasonNumber, { episodeNumber, video720, video1080 }) => {
         const formData = new FormData();
         formData.append('episodeNumber', episodeNumber);
         if (video720) formData.append('video', video720);
         if (video1080) formData.append('video', video1080);
-        return axios.post(Url + `/api/webseries/${seriesId}/seasons/${seasonNumber}/episodes`, formData, {
+        return axios.post(Url + `/webseries/${seriesId}/seasons/${seasonNumber}/episodes`, formData, {
             headers: { 'Content-Type': 'multipart/form-data' }
         });
     },
+    // web series chunked uploads
+    wsInitializeChunkedUpload: (data) => {
+        return axios.post(Url + "/webseries/upload/initialize", data);
+    },
+    wsUploadChunk: (uploadId, chunkNumber, totalChunks, chunkFile, onProgress) => {
+        const formData = new FormData();
+        formData.append('chunk', chunkFile);
+        formData.append('uploadId', uploadId);
+        formData.append('chunkNumber', chunkNumber);
+        formData.append('totalChunks', totalChunks);
+        return axios.post(Url + "/webseries/upload/chunk", formData, {
+            headers: { 'Content-Type': 'multipart/form-data' },
+            onUploadProgress: onProgress
+        });
+    },
+    wsGetUploadProgress: (uploadId) => {
+        return axios.get(Url + `/webseries/upload/progress/${uploadId}`);
+    },
+    addEpisodeWithChunks: (seriesId, seasonNumber, payload) => {
+        const fd = new FormData();
+        Object.entries(payload).forEach(([k, v]) => fd.append(k, v));
+        return axios.post(Url + `/webseries/${seriesId}/seasons/${seasonNumber}/episodes/chunks`, fd);
+    },
+    listEpisodes: (seriesId, seasonNumber) => {
+        return axios.get(Url + `/webseries/${seriesId}/seasons/${seasonNumber}/episodes`);
+    },
+    getEpisode: (seriesId, seasonNumber, episodeNumber) => {
+        return axios.get(Url + `/webseries/${seriesId}/seasons/${seasonNumber}/episodes/${episodeNumber}`);
+    },
+    updateEpisodeWithChunks: (seriesId, seasonNumber, episodeNumber, payload) => {
+        const fd = new FormData();
+        Object.entries(payload).forEach(([k, v]) => fd.append(k, v));
+        return axios.post(Url + `/webseries/${seriesId}/seasons/${seasonNumber}/episodes/${episodeNumber}/update-chunks`, fd);
+    },
     // delete web series resources
     deleteWebSeries: (seriesId) => {
-        return axios.delete(Url + `/api/webseries/series/${seriesId}`);
+        return axios.delete(Url + `/webseries/series/${seriesId}`);
     },
     deleteSeason: (seriesId, seasonNumber) => {
-        return axios.delete(Url + `/api/webseries/series/${seriesId}/season/${seasonNumber}`);
+        return axios.delete(Url + `/webseries/series/${seriesId}/season/${seasonNumber}`);
     },
     deleteEpisode: (seriesId, seasonNumber, episodeNumber) => {
-        return axios.delete(Url + `/api/webseries/series/${seriesId}/season/${seasonNumber}/episode/${episodeNumber}`);
+        return axios.delete(Url + `/webseries/series/${seriesId}/season/${seasonNumber}/episode/${episodeNumber}`);
     },
 
 }

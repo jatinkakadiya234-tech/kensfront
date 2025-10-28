@@ -35,6 +35,7 @@ import ContentCopyIcon from '@mui/icons-material/ContentCopy';
 const MoviesList = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [movies, setMovies] = useState([]);
+  const [editMovie, setEditMovie] = useState(null);
   const [page, setPage] = useState(1);
   const pageSize = 10;
   const [copied, setCopied] = useState({});
@@ -43,12 +44,14 @@ const MoviesList = () => {
   const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
 
 
-  const handleOpenModal = () => {
+  const handleOpenModal = (movie = null) => {
+    setEditMovie(movie);
     setIsModalOpen(true);
   };
 
   const handleCloseModal = () => {
     setIsModalOpen(false);
+    setEditMovie(null);
   };
 
   const handleDeleteMovie = async (id) => {
@@ -257,6 +260,13 @@ const MoviesList = () => {
                         >
                           <Delete sx={{ color: '#f44336', fontSize: { xs: 18, sm: 24 } }} />
                         </IconButton>
+                        <IconButton
+                          size="small"
+                          sx={{ color: 'primary.main', ml: 1 }}
+                          onClick={() => handleOpenModal(movie)}
+                        >
+                          <Edit sx={{ color: '#4fc3f7', fontSize: { xs: 18, sm: 24 } }} />
+                        </IconButton>
                       </TableCell>
                     </TableRow>
                   ))}
@@ -325,7 +335,7 @@ const MoviesList = () => {
               >
                 <CloseIcon />
               </IconButton>
-              <MovieCreateForm   ListMovis={ListMovis} handleCloseModal={handleCloseModal}  />
+              <MovieCreateForm ListMovis={ListMovis} handleCloseModal={handleCloseModal} editMovie={editMovie} />
             </Box>
           </DialogContent>
         </Dialog>
