@@ -184,13 +184,13 @@ export default function SubscriptionsScreen() {
                                             )}
                                             <div className="mb-4">
                                                 <div className='text-white text-xl font-semibold mb-3 flex justify-between items-center'>
-                                                    <span>{plan.name}</span>
+                                                    <span>{plan.name === "monthly" ? "monthly" : "Unlimited"}</span>
                                                 </div>
                                                 <div className="mb-3">
                                                     <h2 className="text-3xl font-bold text-white mb-0 flex items-end">
                                                         <span className="mr-1">₹</span>
                                                         <span>{plan.price}</span>
-                                                        <span className="ml-1 text-base font-medium">/{planType}</span>
+                                                        <span className="ml-1 text-base font-medium">/{plan.name === "monthly" ? "monthly" : "Unlimited"}</span>
                                                     </h2>
                                                 </div>
                                                 <p className="text-[#d3dad9] text-sm">{plan.features.Content}</p>

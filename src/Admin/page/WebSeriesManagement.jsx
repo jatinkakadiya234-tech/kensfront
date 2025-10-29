@@ -740,7 +740,7 @@ const WebSeriesManagement = () => {
                                                     const source720 = getQualitySourceUrl(episode, '720p');
                                                     const source1080 = getQualitySourceUrl(episode, '1080p');
                                                     const watchUrl720 = WATCH_BASE + encodeURIComponent(source720 || '');
-                                                    const watchUrl1080 = WATCH_BASE + encodeURIComponent(source1080 || source720 || '');
+                                                    const watchUrl1080 = WATCH_BASE + encodeURIComponent(source1080  || '');
                                                     const copyKey720 = `${seriesItem._id}-${season.seasonNumber}-${episode.episodeNumber}-720`;
                                                     const copyKey1080 = `${seriesItem._id}-${season.seasonNumber}-${episode.episodeNumber}-1080`;
                                                     
@@ -768,7 +768,7 @@ const WebSeriesManagement = () => {
                                                               }}
                                                               onClick={() => handleCopy(watchUrl720, copyKey720, '720p URL copied!')}
                                                             >
-                                                              720p: {watchUrl720}
+                                                              720p: {watchUrl720.length >38 ? watchUrl720 : 'N/A'}
                                                             </Typography>
                                                           </Tooltip>
                                                           <IconButton 
@@ -808,7 +808,7 @@ const WebSeriesManagement = () => {
                                                               }}
                                                               onClick={() => handleCopy(watchUrl1080, copyKey1080, '1080p URL copied!')}
                                                             >
-                                                              1080p: {watchUrl1080}
+                                                              1080p: {watchUrl1080.length >38 ? watchUrl1080 : 'N/A'}
                                                             </Typography>
                                                           </Tooltip>
                                                           <IconButton 

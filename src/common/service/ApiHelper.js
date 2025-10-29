@@ -139,9 +139,9 @@ export const Apihelper = {
 
 
     // user api 
-    ListMovise: () => {
-        return axios.get(Url + "/movise/allmovies")
-    },
+  ListMovise: (page = 1, limit = 7) => {
+  return axios.get(`${Url}/movise/allmovies?page=${page}&limit=${limit}`);
+},
     GetmoviseById: (id) => {
         return axios.get(Url + `/movise/movies/${id}`)
     },
