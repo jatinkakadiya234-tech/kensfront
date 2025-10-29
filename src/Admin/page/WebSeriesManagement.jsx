@@ -94,6 +94,7 @@ const WebSeriesManagement = () => {
   const [editEpisodeNum, setEditEpisodeNum] = useState('');
   const [editVideo720, setEditVideo720] = useState(null);
   const [editVideo1080, setEditVideo1080] = useState(null);
+  const [isEditUploading, setIsEditUploading] = useState(false);
 
   const WATCH_BASE = 'https://kensdrive.co.in/watch?video=';
 
@@ -345,15 +346,30 @@ const WebSeriesManagement = () => {
       totalChunks: chunks.length
     });
     const uploadId = init.data.uploadId;
-    setWsUploadProgress(prev => ({ ...prev, [quality]: { progress: 0, status: 'uploading', fileName: file.name, uploadId } }));
+
+    setWsUploadProgress(prev => ({
+      ...prev,
+      [quality]: { progress: 0, status: 'uploading', fileName: file.name, uploadId }
+    }));
+
     for (let i = 0; i < chunks.length; i++) {
       const { chunk, index } = chunks[i];
-      await Apihelper.wsUploadChunk(uploadId, index, chunks.length, chunk, () => {});
+      await Apihelper.wsUploadChunk(uploadId, index, chunks.length, chunk, (pe) => {
+        const chunkProgress = (pe.loaded / pe.total) * 100;
+        const overall = ((index * 100 + chunkProgress) / chunks.length);
+        setWsUploadProgress(prev => ({
+          ...prev,
+          [quality]: { ...prev[quality], progress: Math.round(overall) }
+        }));
+      });
     }
-    const maxAttempts = 60; let attempts = 0;
+
+    const maxAttempts = 60;
+    let attempts = 0;
     while (attempts < maxAttempts) {
       const resp = await Apihelper.wsGetUploadProgress(uploadId);
-      const { status } = resp.data;
+      const { status, progress } = resp.data;
+      setWsUploadProgress(prev => ({ ...prev, [quality]: { ...prev[quality], progress, status } }));
       if (status === 'completed') return uploadId;
       if (status === 'failed') throw new Error('Upload failed');
       await new Promise(r => setTimeout(r, 3000));
@@ -1493,47 +1509,132 @@ const WebSeriesManagement = () => {
         />
       </Grid>
       <Grid item xs={12}>
-        <Typography variant="body2" sx={{ mb: 1 }}>Replace 720p (optional)</Typography>
-        <Button variant="outlined" component="label" fullWidth>
-          {editVideo720 ? editVideo720.name : 'Select 720p file'}
+        <Typography variant="body2" sx={{ mb: 1, color: '#4facfe', fontWeight: 'bold' }}>Replace 720p (optional)</Typography>
+        <Button 
+          variant="outlined" 
+          component="label" 
+          fullWidth
+          startIcon={editVideo720 ? <CheckIcon /> : <CloudUploadIcon />}
+          sx={{
+            borderColor: editVideo720 ? '#10b981' : '#4facfe',
+            color: editVideo720 ? '#10b981' : '#4facfe'
+          }}
+        >
+          {editVideo720 ? `✓ ${editVideo720.name}` : 'Select 720p file'}
           <input type="file" hidden accept="video/*" onChange={handleEditFile720Change} />
         </Button>
       </Grid>
       <Grid item xs={12}>
-        <Typography variant="body2" sx={{ mb: 1 }}>Replace 1080p (optional)</Typography>
-        <Button variant="outlined" component="label" fullWidth>
-          {editVideo1080 ? editVideo1080.name : 'Select 1080p file'}
+        <Typography variant="body2" sx={{ mb: 1, color: '#00f2fe', fontWeight: 'bold' }}>Replace 1080p (optional)</Typography>
+        <Button 
+          variant="outlined" 
+          component="label" 
+          fullWidth
+          startIcon={editVideo1080 ? <CheckIcon /> : <CloudUploadIcon />}
+          sx={{
+            borderColor: editVideo1080 ? '#10b981' : '#00f2fe',
+            color: editVideo1080 ? '#10b981' : '#00f2fe'
+          }}
+        >
+          {editVideo1080 ? `✓ ${editVideo1080.name}` : 'Select 1080p file'}
           <input type="file" hidden accept="video/*" onChange={handleEditFile1080Change} />
         </Button>
       </Grid>
     </Grid>
+
+    {/* Upload Progress for Edit */}
+    {(wsUploadProgress[720].status !== 'idle' || wsUploadProgress[1080].status !== 'idle') && (
+      <Box sx={{ mt: 3 }}>
+        <Typography variant="body2" sx={{ color: '#cbd5e1', mb: 2, fontWeight: 'bold' }}>Upload Progress</Typography>
+        {wsUploadProgress[720].status !== 'idle' && (
+          <Box sx={{ mb: 2 }}>
+            <Typography variant="caption" sx={{ color: '#4facfe', fontWeight: 'bold' }}>720p Upload</Typography>
+            <UploadProgress
+              progress={wsUploadProgress[720].progress}
+              fileName={wsUploadProgress[720].fileName}
+              status={wsUploadProgress[720].status}
+            />
+          </Box>
+        )}
+        {wsUploadProgress[1080].status !== 'idle' && (
+          <Box sx={{ mb: 2 }}>
+            <Typography variant="caption" sx={{ color: '#00f2fe', fontWeight: 'bold' }}>1080p Upload</Typography>
+            <UploadProgress
+              progress={wsUploadProgress[1080].progress}
+              fileName={wsUploadProgress[1080].fileName}
+              status={wsUploadProgress[1080].status}
+            />
+          </Box>
+        )}
+      </Box>
+    )}
   </DialogContent>
   <DialogActions>
-    <Button onClick={()=>setEditEpisodeDialog(false)} sx={{ color: '#cbd5e1' }}>Cancel</Button>
+    <Button 
+      onClick={()=>{
+        setEditEpisodeDialog(false);
+        setWsUploadProgress({
+          720: { progress: 0, status: 'idle', fileName: '', uploadId: null },
+          1080: { progress: 0, status: 'idle', fileName: '', uploadId: null }
+        });
+      }} 
+      sx={{ color: '#cbd5e1' }}
+      disabled={isEditUploading}
+    >
+      Cancel
+    </Button>
     <Button
       variant="contained"
+      disabled={isEditUploading}
       onClick={async ()=>{
         try {
           if (!selectedSeries || !editSeasonNum || !editEpisodeNum) return;
+          
+          setIsEditUploading(true);
           let uploadId720=null, uploadId1080=null;
-          if (editVideo720) uploadId720 = await wsEditUploadFileInChunks(editVideo720, 720);
-          if (editVideo1080) uploadId1080 = await wsEditUploadFileInChunks(editVideo1080, 1080);
+          
+          if (editVideo720) {
+            uploadId720 = await wsEditUploadFileInChunks(editVideo720, 720);
+          }
+          if (editVideo1080) {
+            uploadId1080 = await wsEditUploadFileInChunks(editVideo1080, 1080);
+          }
+          
           const payload = {};
           if (uploadId720) payload.uploadId720 = uploadId720;
           if (uploadId1080) payload.uploadId1080 = uploadId1080;
+          
           const res = await Apihelper.updateEpisodeWithChunks(selectedSeries._id, Number(editSeasonNum), Number(editEpisodeNum), payload);
+          
           if (res.status === 200) {
-            toast.success('Episode updated');
+            toast.success('Episode updated successfully!');
             setEditEpisodeDialog(false);
+            setWsUploadProgress({
+              720: { progress: 0, status: 'idle', fileName: '', uploadId: null },
+              1080: { progress: 0, status: 'idle', fileName: '', uploadId: null }
+            });
             await loadAllSeries();
           }
         } catch (e) {
           toast.error(e?.response?.data?.message || 'Failed to update episode');
+        } finally {
+          setIsEditUploading(false);
         }
       }}
-      sx={{ background: 'linear-gradient(45deg,#4facfe,#00f2fe)' }}
+      sx={{ 
+        background: isEditUploading ? 'rgba(255,255,255,0.1)' : 'linear-gradient(45deg,#4facfe,#00f2fe)',
+        '&:disabled': {
+          background: 'rgba(255,255,255,0.1)',
+          color: 'rgba(255,255,255,0.3)'
+        }
+      }}
     >
-      Save Changes
+      {isEditUploading ? (
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+          <CircularProgress size={16} sx={{ color: 'white' }} />
+          Updating...
+        </Box>
+      ) : 'Save Changes'}
     </Button>
   </DialogActions>
 </Dialog>

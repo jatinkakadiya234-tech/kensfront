@@ -1,6 +1,4 @@
 import React, { useState, useRef, useEffect } from "react";
-import FacebookOutlinedIcon from "@mui/icons-material/FacebookOutlined";
-import TwitterIcon from "@mui/icons-material/Twitter";
 import LinkedInIcon from "@mui/icons-material/LinkedIn";
 import CloudIcon from "@mui/icons-material/Cloud";
 import StorageIcon from "@mui/icons-material/Storage";
@@ -8,6 +6,9 @@ import SecurityIcon from "@mui/icons-material/Security";
 import { Dialog } from "@headlessui/react";
 import { Link } from "react-router-dom";
 import Path from "../Path";
+import { Instagram } from "lucide-react";
+import { FaTelegram } from "react-icons/fa";
+
 
 export default function Footer() {
   const [isOpen, setIsOpen] = useState(false);
@@ -117,45 +118,7 @@ export default function Footer() {
           </div>
 
           {/* Subscription */}
-          <div>
-            <h3
-              className="text-sm font-bold mb-4 h-[2px]"
-              style={{
-                background: "linear-gradient(45deg, #4facfe, #00f2fe)",
-                backgroundClip: "text",
-                WebkitBackgroundClip: "text",
-                WebkitTextFillColor: "transparent",
-              }}
-            >
-              Plans
-            </h3>
-            <ul className="space-y-3">
-              <li>
-                <Link
-                  to="#"
-                  className="text-gray-300 hover:text-white transition-colors duration-300 hover:translate-x-1 inline-block"
-                >
-                  Free Plan
-                </Link>
-              </li>
-              <li>
-                <Link
-                  to="#"
-                  className="text-gray-300 hover:text-white transition-colors duration-300 hover:translate-x-1 inline-block"
-                >
-                  Pro Plan
-                </Link>
-              </li>
-              <li>
-                <Link
-                  to="#"
-                  className="text-gray-300 hover:text-white transition-colors duration-300 hover:translate-x-1 inline-block"
-                >
-                  Business Plan
-                </Link>
-              </li>
-            </ul>
-          </div>
+        
 
           {/* Social Media */}
           <div>
@@ -172,24 +135,28 @@ export default function Footer() {
             </h3>
             <div className="flex gap-3">
               <a
-                href="#"
+                href="https://t.me/kensdrivemovie"
                 className="p-3 rounded-full transition-all duration-300 hover:scale-110 hover:shadow-lg"
                 style={{
                   background: "linear-gradient(45deg, #1877f2, #4facfe)",
                 }}
-                aria-label="Facebook"
+                target="_blank"
+                rel="noopener noreferrer"
+                aria-label="telegram"
               >
-                <FacebookOutlinedIcon className="text-white" />
+                <FaTelegram className="text-white text-2xl" />
               </a>
               <a
-                href="#"
+                href="https://www.instagram.com/kensdrivemovies?igsh=MWhyODA4bDNqMjZoZA%3D%3D&utm_source=qr"
                 className="p-3 rounded-full transition-all duration-300 hover:scale-110 hover:shadow-lg"
                 style={{
                   background: "linear-gradient(45deg, #1da1f2, #00f2fe)",
                 }}
+                 target="_blank"
+                rel="noopener noreferrer"
                 aria-label="Twitter"
               >
-                <TwitterIcon className="text-white" />
+                <Instagram className="text-white" />
               </a>
               <a
                 href="#"
