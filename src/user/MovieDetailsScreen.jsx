@@ -20,26 +20,43 @@ export default function MovieDetailsScreen() {
   const hasVideo = Boolean(videoUrl);
   const isHls = hasVideo && /\.m3u8(\?|$)/i.test(videoUrl);
 
-  // Initialize HLS if needed
+  // Initialize video source
   useEffect(() => {
     if (!showVideo) return;
     const video = videoRef.current;
     if (!video || !hasVideo) return;
 
+    // Safari detection
+    const isSafari = /^((?!chrome|android).)*safari/i.test(navigator.userAgent);
+    
     if (isHls) {
-      const canPlayNative = video.canPlayType("application/vnd.apple.mpegurl");
-      if (canPlayNative) {
+      // For Safari, always try native HLS first
+      if (isSafari || video.canPlayType("application/vnd.apple.mpegurl")) {
         video.src = videoUrl;
+        video.load();
       } else if (Hls.isSupported()) {
-        const hls = new Hls();
+        const hls = new Hls({
+          debug: false,
+          enableWorker: true,
+          lowLatencyMode: true,
+        });
         hls.loadSource(videoUrl);
         hls.attachMedia(video);
+        hls.on(Hls.Events.ERROR, (event, data) => {
+          console.error('HLS Error:', data);
+          if (data.fatal) {
+            video.src = videoUrl; // Fallback to direct URL
+            video.load();
+          }
+        });
         return () => hls.destroy();
       } else {
         video.src = videoUrl;
+        video.load();
       }
     } else {
       video.src = videoUrl;
+      video.load();
     }
   }, [videoUrl, hasVideo, isHls, showVideo]);
 
@@ -126,15 +143,27 @@ export default function MovieDetailsScreen() {
               ref={videoRef}
               className="w-full h-full object-cover"
               controls
-              autoPlay
               playsInline
               webkit-playsinline="true"
               preload="metadata"
               controlsList="nodownload"
-              crossOrigin="anonymous"
-              muted
+              muted={false}
+              onCanPlay={() => {
+                console.log('Video can play');
+                if (videoRef.current) {
+                  videoRef.current.play().catch(e => console.log('Play failed:', e));
+                }
+              }}
               onLoadStart={() => console.log('Video loading started')}
-              onError={(e) => console.error('Video error:', e)}
+              onError={(e) => {
+                console.error('Video error:', e.target.error);
+                // Try direct URL as fallback
+                if (videoRef.current && videoUrl) {
+                  videoRef.current.src = videoUrl;
+                  videoRef.current.load();
+                }
+              }}
+              onLoadedData={() => console.log('Video data loaded')}
             />
           )}
 
