@@ -8,7 +8,7 @@ export default function MovieDetailsScreen() {
   const [showVideo, setShowVideo] = useState(false);
 
   const videoRef = useRef(null);
-  const navigator = useNavigate();
+  const navigate = useNavigate();
   // Get video URL from query param
   let videoUrl = "";
   try {
@@ -123,17 +123,19 @@ export default function MovieDetailsScreen() {
           ) : (
             // Actual video player
             <video
+              ref={videoRef}
               className="w-full h-full object-cover"
               controls
               autoPlay
               playsInline
+              webkit-playsinline="true"
               preload="metadata"
               controlsList="nodownload"
-            >
-              <source src={videoRef} type="video/mp4" />
-              <source src={videoRef} type="video/webm" />
-              <source src={videoRef} type="video/quicktime" />
-            </video>
+              crossOrigin="anonymous"
+              muted
+              onLoadStart={() => console.log('Video loading started')}
+              onError={(e) => console.error('Video error:', e)}
+            />
           )}
 
           {/* Premium popup */}
@@ -147,7 +149,7 @@ export default function MovieDetailsScreen() {
                   Upgrade to premium to continue watching
                 </p>
                 <button
-                  onClick={() => navigator("/subscription")}
+                  onClick={() => navigate("/subscription")}
                   className="w-full bg-gradient-to-r from-[#4facfe] to-[#00f2fe] text-white py-3 px-6 rounded-lg font-semibold"
                 >
                   Get Premium
