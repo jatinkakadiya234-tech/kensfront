@@ -8,7 +8,7 @@ export default function MovieDetailsScreen() {
   const [showVideo, setShowVideo] = useState(false);
 
   const videoRef = useRef(null);
-const navigator = useNavigate();
+  const navigator = useNavigate();
   // Get video URL from query param
   let videoUrl = "";
   try {
@@ -59,7 +59,7 @@ const navigator = useNavigate();
     if (isPremium || !hasVideo || !showVideo) return;
     const video = videoRef.current;
     if (!video) return;
-    
+
     const timer = setTimeout(() => {
       video.pause();
       setShowPopup(true);
@@ -93,19 +93,28 @@ const navigator = useNavigate();
         <div className="relative w-full h-full flex justify-center items-center">
           {!showVideo ? (
             // YouTube-like thumbnail with play button
-            <div className="relative w-full h-full bg-black flex items-center justify-center cursor-pointer" onClick={handlePlayClick}>
+            <div
+              className="relative w-full h-full bg-black flex items-center justify-center cursor-pointer"
+              onClick={handlePlayClick}
+            >
               <div className="absolute inset-0 bg-gradient-to-b from-transparent via-black/20 to-black/60"></div>
-              
+
               {/* Play Button */}
               <div className="relative z-10 w-20 h-20 bg-red-600 rounded-full flex items-center justify-center hover:bg-red-700 transition-colors shadow-2xl">
-                <svg className="w-8 h-8 text-white ml-1" fill="currentColor" viewBox="0 0 24 24">
-                  <path d="M8 5v14l11-7z"/>
+                <svg
+                  className="w-8 h-8 text-white ml-1"
+                  fill="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path d="M8 5v14l11-7z" />
                 </svg>
               </div>
-              
+
               {/* Movie Info Overlay */}
               <div className="absolute bottom-0 left-0 right-0 p-6 text-white z-10">
-                <h1 className="text-2xl md:text-4xl font-bold mb-2">Movie Title</h1>
+                <h1 className="text-2xl md:text-4xl font-bold mb-2">
+                  Movie Title
+                </h1>
                 <p className="text-sm md:text-base text-gray-300 mb-4">
                   Click to play this movie
                 </p>
@@ -114,24 +123,31 @@ const navigator = useNavigate();
           ) : (
             // Actual video player
             <video
-              ref={videoRef}
               className="w-full h-full object-cover"
               controls
               autoPlay
               playsInline
               preload="metadata"
               controlsList="nodownload"
-            />
+            >
+              <source src={videoRef} type="video/mp4" />
+              <source src={videoRef} type="video/webm" />
+              <source src={videoRef} type="video/quicktime" />
+            </video>
           )}
 
           {/* Premium popup */}
           {showPopup && !isPremium && (
             <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-95">
               <div className="bg-gradient-to-br from-[#2c5364] to-[#203a43] rounded-xl shadow-2xl p-8 max-w-sm w-full text-center border-2 border-[#4facfe]">
-                <h3 className="text-xl font-bold text-white mb-4">Premium Required</h3>
-                <p className="text-gray-300 mb-6">Upgrade to premium to continue watching</p>
+                <h3 className="text-xl font-bold text-white mb-4">
+                  Premium Required
+                </h3>
+                <p className="text-gray-300 mb-6">
+                  Upgrade to premium to continue watching
+                </p>
                 <button
-                  onClick={() =>  navigator("/subscription")}
+                  onClick={() => navigator("/subscription")}
                   className="w-full bg-gradient-to-r from-[#4facfe] to-[#00f2fe] text-white py-3 px-6 rounded-lg font-semibold"
                 >
                   Get Premium
