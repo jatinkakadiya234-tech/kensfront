@@ -628,12 +628,12 @@ export default function UserProfile() {
                       </td>
                       <td
                         className={`px-6 py-4 whitespace-nowrap text-sm font-medium text-right ${
-                          transaction.type === "credit"
+                          transaction.type === "referral_reward"
                             ? "text-green-600"
                             : "text-red-600"
                         }`}
                       >
-                        {transaction.type === "credit" ? "+" : "-"}
+                        {transaction.type === "referral_reward" ? "+" : "-"}
                         {transaction.amount}
                       </td>
                     </tr>
