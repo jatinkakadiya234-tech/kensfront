@@ -143,9 +143,9 @@ useEffect(() => {
   playsInline
   webkit-playsinline="true"
   preload="auto"
-  muted={false}
+
   autoPlay={true}
-  controlsList="nodownload"
+  controlsList="nodownload unmuted"
   onError={(e) => console.error("Video Error:", e.target.error)}
 />
 
