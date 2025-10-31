@@ -9,7 +9,29 @@ export default function MovieDetailsScreen() {
 
   const videoRef = useRef(null);
   const navigate = useNavigate();
-  // Get video URL from query param
+
+  // ✅ Redirect Telegram in-app browser → Chrome or Safari
+  useEffect(() => {
+    const ua = navigator.userAgent || navigator.vendor || window.opera;
+    const isTelegram = /Telegram/i.test(ua);
+    if (isTelegram) {
+      const url = window.location.href;
+      if (/iPhone|iPad|iPod/i.test(ua)) {
+        // iPhone Safari redirect
+        window.location.href = `https://www.google.com/search?q=${encodeURIComponent(
+          url
+        )}`;
+      } else {
+        // Android → Chrome redirect
+        window.location.href = `intent://${url.replace(
+          /^https?:\/\//,
+          ""
+        )}#Intent;scheme=https;package=com.android.chrome;end`;
+      }
+    }
+  }, []);
+
+  // ✅ Get video URL from query param
   let videoUrl = "";
   try {
     const params = new URLSearchParams(window.location.search);
@@ -20,45 +42,48 @@ export default function MovieDetailsScreen() {
   const hasVideo = Boolean(videoUrl);
   const isHls = hasVideo && /\.m3u8(\?|$)/i.test(videoUrl);
 
-  // Initialize video source
-useEffect(() => {
-  if (!showVideo || !hasVideo) return;
+  // ✅ Initialize video playback (Safari + HLS.js)
+  useEffect(() => {
+    if (!showVideo || !hasVideo) return;
+    const video = videoRef.current;
+    if (!video) return;
 
-  const video = videoRef.current;
-  if (!video) return;
+    const isSafari = /^((?!chrome|android).)*safari/i.test(navigator.userAgent);
 
-  const isSafari = /^((?!chrome|android).)*safari/i.test(navigator.userAgent);
-
-  // Direct HLS support for Safari and iPhone browsers
-  if (isHls) {
-    if (isSafari) {
-      video.src = videoUrl;
-      video.load();
-      video.play().catch(e => console.warn("Autoplay blocked:", e));
-    } else if (Hls.isSupported()) {
-      const hls = new Hls({
-        enableWorker: true,
-        lowLatencyMode: true,
-        debug: false,
-      });
-      hls.loadSource(videoUrl);
-      hls.attachMedia(video);
-      hls.on(Hls.Events.MANIFEST_PARSED, () => {
-        video.play().catch(e => console.warn("Play error:", e));
-      });
-      return () => hls.destroy();
+    if (isHls) {
+      if (isSafari) {
+        // Native Safari HLS
+        video.src = videoUrl;
+        video.load();
+        video
+          .play()
+          .catch((e) => console.warn("Autoplay blocked on Safari:", e));
+      } else if (Hls.isSupported()) {
+        // Android / Chrome HLS.js
+        const hls = new Hls({
+          enableWorker: true,
+          lowLatencyMode: true,
+          debug: false,
+        });
+        hls.loadSource(videoUrl);
+        hls.attachMedia(video);
+        hls.on(Hls.Events.MANIFEST_PARSED, () => {
+          video
+            .play()
+            .catch((e) => console.warn("Autoplay blocked (HLS):", e));
+        });
+        return () => hls.destroy();
+      } else {
+        video.src = videoUrl;
+        video.load();
+      }
     } else {
       video.src = videoUrl;
       video.load();
     }
-  } else {
-    video.src = videoUrl;
-    video.load();
-  }
-}, [showVideo, hasVideo, isHls, videoUrl]);
+  }, [showVideo, hasVideo, isHls, videoUrl]);
 
-
-  // Premium check
+  // ✅ Premium check
   useEffect(() => {
     try {
       const userInfo = localStorage.getItem("userinfo");
@@ -69,7 +94,7 @@ useEffect(() => {
     } catch {}
   }, []);
 
-  // Non-premium timer
+  // ✅ Non-premium 10-second limit
   useEffect(() => {
     if (isPremium || !hasVideo || !showVideo) return;
     const video = videoRef.current;
@@ -78,12 +103,21 @@ useEffect(() => {
     const timer = setTimeout(() => {
       video.pause();
       setShowPopup(true);
-    }, 10000);
+    }, 5000);
     return () => clearTimeout(timer);
   }, [isPremium, videoUrl, hasVideo, showVideo]);
 
   const handlePlayClick = () => {
+    const video = videoRef.current;
     setShowVideo(true);
+
+    // ✅ Unmute and play after interaction (solves iPhone mute issue)
+    setTimeout(() => {
+      if (video) {
+        video.muted = false;
+        video.play().catch((e) => console.log("Play error:", e));
+      }
+    }, 500);
   };
 
   return (
@@ -107,7 +141,7 @@ useEffect(() => {
       {hasVideo && (
         <div className="relative w-full h-full flex justify-center items-center">
           {!showVideo ? (
-            // YouTube-like thumbnail with play button
+            // ✅ Thumbnail view before play
             <div
               className="relative w-full h-full bg-black flex items-center justify-center cursor-pointer"
               onClick={handlePlayClick}
@@ -125,33 +159,32 @@ useEffect(() => {
                 </svg>
               </div>
 
-              {/* Movie Info Overlay */}
+              {/* Movie Info */}
               <div className="absolute bottom-0 left-0 right-0 p-6 text-white z-10">
                 <h1 className="text-2xl md:text-4xl font-bold mb-2">
                   Movie Title
                 </h1>
                 <p className="text-sm md:text-base text-gray-300 mb-4">
-                  Click to play this movie
+                  Tap to start playing
                 </p>
               </div>
             </div>
           ) : (
-          <video
-  ref={videoRef}
-  className="w-full h-full object-cover"
-  controls
-  playsInline
-  webkit-playsinline="true"
-  preload="auto"
-
-  autoPlay={true}
-  controlsList="nodownload unmuted"
-  onError={(e) => console.error("Video Error:", e.target.error)}
-/>
-
+            // ✅ Video Player
+            <video
+              ref={videoRef}
+              className="w-full h-full object-cover"
+              controls
+              playsInline
+              muted={false}
+              preload="auto"
+              autoPlay
+              controlsList="nodownload"
+              onError={(e) => console.error("Video Error:", e.target.error)}
+            />
           )}
 
-          {/* Premium popup */}
+          {/* ✅ Premium popup */}
           {showPopup && !isPremium && (
             <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-95">
               <div className="bg-gradient-to-br from-[#2c5364] to-[#203a43] rounded-xl shadow-2xl p-8 max-w-sm w-full text-center border-2 border-[#4facfe]">
@@ -159,7 +192,7 @@ useEffect(() => {
                   Premium Required
                 </h3>
                 <p className="text-gray-300 mb-6">
-                  Upgrade to premium to continue watching
+                  Upgrade to premium to continue watching.
                 </p>
                 <button
                   onClick={() => navigate("/subscription")}
