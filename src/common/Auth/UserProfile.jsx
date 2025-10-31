@@ -237,7 +237,7 @@ export default function UserProfile() {
     if (navigator.share) {
       navigator
         .share({ title: "KensDrive", text: shareMessage, url: referralUrl })
-        .catch(() => {});
+        .catch(() => { });
       return;
     }
     switch (platform) {
@@ -627,15 +627,19 @@ export default function UserProfile() {
                         {transaction.description}
                       </td>
                       <td
-                        className={`px-6 py-4 whitespace-nowrap text-sm font-medium text-right ${
-                          transaction.type === "referral_reward"
+                        className={`px-6 py-4 whitespace-nowrap text-sm font-medium text-right ${transaction.type === "referral_reward"
                             ? "text-green-600"
                             : "text-red-600"
-                        }`}
+                          }`}
                       >
                         {transaction.type === "referral_reward" ? "+" : "-"}
-                        {transaction.amount}
+                        {Number(transaction.amount).toLocaleString("en-IN", {
+                          style: "currency",
+                         
+                          minimumFractionDigits: 0,
+                        })}
                       </td>
+
                     </tr>
                   ))}
                 </tbody>
@@ -717,9 +721,8 @@ export default function UserProfile() {
                       type="number"
                       min="150"
                       placeholder="Points (min 150)"
-                      className={`w-full h-11 border pl-10 pr-3 rounded ${
-                        withdrawErrors.pointsToWithdraw ? "border-red-500" : ""
-                      }`}
+                      className={`w-full h-11 border pl-10 pr-3 rounded ${withdrawErrors.pointsToWithdraw ? "border-red-500" : ""
+                        }`}
                     />
                     <div className="min-h-5">
                       {withdrawErrors.pointsToWithdraw && (
@@ -744,9 +747,8 @@ export default function UserProfile() {
                       value={bankName}
                       onChange={(e) => setBankName(e.target.value)}
                       placeholder="Bank Name"
-                      className={`w-full h-11 border pl-10 pr-3 rounded ${
-                        withdrawErrors.bankName ? "border-red-500" : ""
-                      }`}
+                      className={`w-full h-11 border pl-10 pr-3 rounded ${withdrawErrors.bankName ? "border-red-500" : ""
+                        }`}
                     />
                     <div className="min-h-5">
                       {withdrawErrors.bankName && (
@@ -771,9 +773,8 @@ export default function UserProfile() {
                       value={accountNumber}
                       onChange={(e) => setAccountNumber(e.target.value)}
                       placeholder="Account Number"
-                      className={`w-full h-11 border pl-10 pr-3 rounded ${
-                        withdrawErrors.accountNumber ? "border-red-500" : ""
-                      }`}
+                      className={`w-full h-11 border pl-10 pr-3 rounded ${withdrawErrors.accountNumber ? "border-red-500" : ""
+                        }`}
                     />
                     <div className="min-h-5">
                       {withdrawErrors.accountNumber && (
@@ -798,9 +799,8 @@ export default function UserProfile() {
                       value={ifscCode}
                       onChange={(e) => setIfscCode(e.target.value)}
                       placeholder="IFSC Code (e.g., HDFC0ABC123)"
-                      className={`w-full h-11 border pl-10 pr-3 rounded ${
-                        withdrawErrors.ifscCode ? "border-red-500" : ""
-                      }`}
+                      className={`w-full h-11 border pl-10 pr-3 rounded ${withdrawErrors.ifscCode ? "border-red-500" : ""
+                        }`}
                     />
                     <div className="min-h-5">
                       {withdrawErrors.ifscCode && (
@@ -821,11 +821,10 @@ export default function UserProfile() {
                   <button
                     disabled={submittingWithdraw}
                     onClick={submitWithdraw}
-                    className={`px-4 py-2 rounded text-white ${
-                      submittingWithdraw
+                    className={`px-4 py-2 rounded text-white ${submittingWithdraw
                         ? "bg-blue-300"
                         : "bg-blue-600 hover:bg-blue-700"
-                    }`}
+                      }`}
                   >
                     {submittingWithdraw ? "Submitting..." : "Submit"}
                   </button>
