@@ -7,6 +7,7 @@ export default function MovieDetailsScreen() {
   const [isPremium, setIsPremium] = useState(false);
   const [showVideo, setShowVideo] = useState(false);
   const [isFullscreen, setIsFullscreen] = useState(false);
+  const [videoError, setVideoError] = useState(false);
 
   const videoRef = useRef(null);
   const navigate = useNavigate();
@@ -36,7 +37,9 @@ export default function MovieDetailsScreen() {
     const params = new URLSearchParams(window.location.search);
     const videoParam = params.get("video");
     if (videoParam) videoUrl = videoParam;
-  } catch {}
+  } catch (error) {
+    console.error("Error getting video URL:", error);
+  }
 
   const hasVideo = Boolean(videoUrl);
   const isHls = hasVideo && /\.m3u8(\?|$)/i.test(videoUrl);
@@ -69,6 +72,12 @@ export default function MovieDetailsScreen() {
             .play()
             .catch((e) => console.warn("Autoplay blocked (HLS):", e));
         });
+        
+        hls.on(Hls.Events.ERROR, (event, data) => {
+          console.error("HLS Error:", data);
+          setVideoError(true);
+        });
+        
         return () => hls.destroy();
       } else {
         video.src = videoUrl;
@@ -88,10 +97,12 @@ export default function MovieDetailsScreen() {
         const user = JSON.parse(userInfo);
         setIsPremium(!!user.isPremium);
       }
-    } catch {}
+    } catch (error) {
+      console.error("Error checking premium status:", error);
+    }
   }, []);
 
-  // ✅ Non-premium 10-second limit
+  // ✅ Non-premium 5-second limit
   useEffect(() => {
     if (isPremium || !hasVideo || !showVideo) return;
     const video = videoRef.current;
@@ -100,7 +111,6 @@ export default function MovieDetailsScreen() {
     const timer = setTimeout(() => {
       video.pause();
       setShowPopup(true);
-      // Fullscreen popup
       setIsFullscreen(true);
     }, 5000); // 5 seconds
 
@@ -110,11 +120,15 @@ export default function MovieDetailsScreen() {
   const handlePlayClick = () => {
     const video = videoRef.current;
     setShowVideo(true);
+    setVideoError(false);
 
     setTimeout(() => {
       if (video) {
         video.muted = false;
-        video.play().catch((e) => console.log("Play error:", e));
+        video.play().catch((e) => {
+          console.log("Play error:", e);
+          setVideoError(true);
+        });
       }
     }, 500);
   };
@@ -123,6 +137,11 @@ export default function MovieDetailsScreen() {
     setShowPopup(false);
     setIsFullscreen(false);
     setShowVideo(false);
+  };
+
+  const handleVideoError = (e) => {
+    console.error("Video Error:", e.target.error);
+    setVideoError(true);
   };
 
   return (
@@ -190,8 +209,27 @@ export default function MovieDetailsScreen() {
                 </div>
               </div>
 
-              {/* Movie Info Bottom */}
-             
+              {/* Movie Info Bottom - FIXED: Added back the movie info */}
+              <div className="absolute bottom-0 left-0 right-0 p-8 text-white z-20">
+                <div className="max-w-4xl mx-auto">
+                  <h1 className="text-4xl md:text-6xl font-bold mb-4 text-white">
+                    The Grand Adventure
+                  </h1>
+                  <div className="flex items-center gap-4 mb-4">
+                    <span className="bg-[#00a8e1] text-white px-3 py-1 rounded text-sm font-semibold">
+                      HD
+                    </span>
+                    <span className="text-gray-300">2024</span>
+                    <span className="text-gray-300">2h 18m</span>
+                    <span className="border border-gray-400 px-2 py-1 rounded text-xs text-gray-300">
+                      13+
+                    </span>
+                  </div>
+                  <p className="text-gray-300 text-lg max-w-2xl">
+                    An epic journey through uncharted territories. Join our heroes as they discover the secrets of the ancient world.
+                  </p>
+                </div>
+              </div>
 
               {/* Prime Logo */}
               <div className="absolute top-6 left-6 z-20">
@@ -206,6 +244,19 @@ export default function MovieDetailsScreen() {
           ) : (
             // ✅ Video Player
             <div className="relative w-full h-full bg-black">
+              {videoError && (
+                <div className="absolute inset-0 flex items-center justify-center z-10">
+                  <div className="text-white text-center">
+                    <p className="text-xl">Video playback error</p>
+                    <button 
+                      onClick={() => setShowVideo(false)}
+                      className="mt-4 bg-[#00a8e1] px-4 py-2 rounded"
+                    >
+                      Go Back
+                    </button>
+                  </div>
+                </div>
+              )}
               <video
                 ref={videoRef}
                 className="w-full h-full object-contain"
@@ -215,7 +266,7 @@ export default function MovieDetailsScreen() {
                 preload="auto"
                 autoPlay
                 controlsList="nodownload"
-                onError={(e) => console.error("Video Error:", e.target.error)}
+                onError={handleVideoError}
               />
             </div>
           )}
@@ -225,10 +276,10 @@ export default function MovieDetailsScreen() {
             <div className="fixed inset-0 z-50 flex items-center justify-center bg-gradient-to-br from-[#0f171e] to-[#1a242f]">
               <div className="w-full h-full flex flex-col items-center justify-center p-6 max-w-2xl mx-auto">
                 
-                {/* Prime Logo */}
+                {/* Prime Logo - FIXED: w-30 to w-32 */}
                 <div className="mb-8">
                   <div className="flex items-center gap-3">
-                    <div className="w-30 h-12 bg-gradient-to-r from-[#00a8e1] to-[#00d4ff] rounded-lg flex items-center justify-center shadow-2xl">
+                    <div className="w-32 h-12 bg-gradient-to-r from-[#00a8e1] to-[#00d4ff] rounded-lg flex items-center justify-center shadow-2xl">
                       <span className="text-white font-bold text-lg">kensdrive</span>
                     </div>
                     <div>
