@@ -16,15 +16,13 @@ import Trials from './Admin/page/Trials';
 import HomeScreen from './user/Homescreen';
 import Header from './common/Navbar/Navbar';
 import TrialScreen from './common/Navbar/TrialScreen';
-// import MovieScreen from './user/Movisescreen';
 import SubscriptionsScreen from './user/SubscriptionsScreen';
 import VideoUploadPreview from './user/VideoUploadPreview';
 import Footer from './common/Navbar/Footer';
 import UserScreen from './common/Auth/UserProfile';
 import MovieDetailsScreen from './user/MovieDetailsScreen';
 import Historys from './common/Navbar/History';
-// import MovieForm from './Admin/page/MovieCreateForm';
-// import VideoUploadPreview from './user/localuploderscreen';
+
 import PrivateRoute from './common/Auth/PrivateRoute';
 import ScrollToTop from './common/Page/ScrollToTop';
 import { useEffect } from 'react';

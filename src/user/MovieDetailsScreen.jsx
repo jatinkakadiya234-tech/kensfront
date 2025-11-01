@@ -6,6 +6,7 @@ export default function MovieDetailsScreen() {
   const [showPopup, setShowPopup] = useState(false);
   const [isPremium, setIsPremium] = useState(false);
   const [showVideo, setShowVideo] = useState(false);
+  const [isFullscreen, setIsFullscreen] = useState(false);
 
   const videoRef = useRef(null);
   const navigate = useNavigate();
@@ -17,12 +18,10 @@ export default function MovieDetailsScreen() {
     if (isTelegram) {
       const url = window.location.href;
       if (/iPhone|iPad|iPod/i.test(ua)) {
-        // iPhone Safari redirect
         window.location.href = `https://www.google.com/search?q=${encodeURIComponent(
           url
         )}`;
       } else {
-        // Android → Chrome redirect
         window.location.href = `intent://${url.replace(
           /^https?:\/\//,
           ""
@@ -42,7 +41,7 @@ export default function MovieDetailsScreen() {
   const hasVideo = Boolean(videoUrl);
   const isHls = hasVideo && /\.m3u8(\?|$)/i.test(videoUrl);
 
-  // ✅ Initialize video playback (Safari + HLS.js)
+  // ✅ Initialize video playback
   useEffect(() => {
     if (!showVideo || !hasVideo) return;
     const video = videoRef.current;
@@ -52,14 +51,12 @@ export default function MovieDetailsScreen() {
 
     if (isHls) {
       if (isSafari) {
-        // Native Safari HLS
         video.src = videoUrl;
         video.load();
         video
           .play()
           .catch((e) => console.warn("Autoplay blocked on Safari:", e));
       } else if (Hls.isSupported()) {
-        // Android / Chrome HLS.js
         const hls = new Hls({
           enableWorker: true,
           lowLatencyMode: true,
@@ -103,7 +100,10 @@ export default function MovieDetailsScreen() {
     const timer = setTimeout(() => {
       video.pause();
       setShowPopup(true);
-    }, 5000);
+      // Fullscreen popup
+      setIsFullscreen(true);
+    }, 5000); // 5 seconds
+
     return () => clearTimeout(timer);
   }, [isPremium, videoUrl, hasVideo, showVideo]);
 
@@ -111,7 +111,6 @@ export default function MovieDetailsScreen() {
     const video = videoRef.current;
     setShowVideo(true);
 
-    // ✅ Unmute and play after interaction (solves iPhone mute issue)
     setTimeout(() => {
       if (video) {
         video.muted = false;
@@ -120,18 +119,24 @@ export default function MovieDetailsScreen() {
     }, 500);
   };
 
+  const handleClosePopup = () => {
+    setShowPopup(false);
+    setIsFullscreen(false);
+    setShowVideo(false);
+  };
+
   return (
-    <div className="relative w-full h-screen flex flex-col justify-center items-center bg-[#37353E] overflow-hidden">
+    <div className="relative w-full h-screen flex flex-col justify-center items-center bg-[#0f171e] overflow-hidden">
       {!hasVideo && (
         <div className="flex flex-col justify-center items-center h-full text-white">
-          <div className="bg-[#2c5364] rounded-lg p-4 border border-[#4facfe] text-center max-w-md">
+          <div className="bg-[#1a242f] rounded-lg p-6 border border-[#00a8e1] text-center max-w-md">
             <img
               src="https://cdn-icons-png.flaticon.com/512/1661/1661901.png"
               alt="No Video"
-              className="w-12 h-12 mx-auto mb-2"
+              className="w-16 h-16 mx-auto mb-4 opacity-80"
             />
-            <h3 className="text-xl font-semibold mb-2">Video Not Available</h3>
-            <p className="text-sm text-gray-300">
+            <h3 className="text-2xl font-bold mb-3 text-white">Video Not Available</h3>
+            <p className="text-gray-400">
               The video content for this movie is currently unavailable.
             </p>
           </div>
@@ -141,65 +146,171 @@ export default function MovieDetailsScreen() {
       {hasVideo && (
         <div className="relative w-full h-full flex justify-center items-center">
           {!showVideo ? (
-            // ✅ Thumbnail view before play
+            // ✅ Amazon Prime Style Thumbnail
             <div
-              className="relative w-full h-full bg-black flex items-center justify-center cursor-pointer"
+              className="relative w-full h-full bg-black flex items-center justify-center cursor-pointer group"
               onClick={handlePlayClick}
             >
-              <div className="absolute inset-0 bg-gradient-to-b from-transparent via-black/20 to-black/60"></div>
+              {/* Background Blur Effect */}
+              <div 
+                className="absolute inset-0 bg-cover bg-center blur-sm scale-110"
+                style={{
+                  backgroundImage: `url('https://images.unsplash.com/photo-1489599809505-7c8c62a0f4d4?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=2070&q=80')`
+                }}
+              ></div>
+              
+              {/* Dark Overlay */}
+              <div className="absolute inset-0 bg-black/70"></div>
+              
+              {/* Gradient Overlay */}
+              <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-transparent to-black/50"></div>
 
-              {/* Play Button */}
-              <div className="relative z-10 w-20 h-20 bg-red-600 rounded-full flex items-center justify-center hover:bg-red-700 transition-colors shadow-2xl">
-                <svg
-                  className="w-8 h-8 text-white ml-1"
-                  fill="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path d="M8 5v14l11-7z" />
-                </svg>
+              {/* Play Button - Amazon Prime Style */}
+              <div className="relative z-20 flex flex-col items-center">
+                <div className="w-24 h-24 bg-white/20 rounded-full flex items-center justify-center group-hover:bg-white/30 transition-all duration-300 backdrop-blur-sm border border-white/30">
+                  <div className="w-20 h-20 bg-white rounded-full flex items-center justify-center group-hover:scale-110 transition-transform duration-300 shadow-2xl">
+                    <svg
+                      className="w-10 h-10 text-[#00a8e1] ml-1"
+                      fill="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path d="M8 5v14l11-7z" />
+                    </svg>
+                  </div>
+                </div>
+                
+                {/* Text */}
+                <div className="mt-6 text-center">
+                  <p className="text-white text-lg font-semibold tracking-wide">
+                    Watch Now
+                  </p>
+                  <p className="text-gray-300 text-sm mt-2">
+                    Click to start streaming
+                  </p>
+                </div>
               </div>
 
-              {/* Movie Info */}
-              <div className="absolute bottom-0 left-0 right-0 p-6 text-white z-10">
-                <h1 className="text-2xl md:text-4xl font-bold mb-2">
-                  Movie Title
-                </h1>
-                <p className="text-sm md:text-base text-gray-300 mb-4">
-                  Tap to start playing
-                </p>
+              {/* Movie Info Bottom */}
+             
+
+              {/* Prime Logo */}
+              <div className="absolute top-6 left-6 z-20">
+                <div className="flex items-center gap-2">
+                  <div className="w-8 h-8 bg-gradient-to-r from-[#00a8e1] to-[#00d4ff] rounded flex items-center justify-center">
+                    <span className="text-white text-xs font-bold">Prime</span>
+                  </div>
+                  <span className="text-white font-semibold text-sm">Included with Prime</span>
+                </div>
               </div>
             </div>
           ) : (
             // ✅ Video Player
-            <video
-              ref={videoRef}
-              className="w-full h-full object-cover"
-              controls
-              playsInline
-              muted={false}
-              preload="auto"
-              autoPlay
-              controlsList="nodownload"
-              onError={(e) => console.error("Video Error:", e.target.error)}
-            />
+            <div className="relative w-full h-full bg-black">
+              <video
+                ref={videoRef}
+                className="w-full h-full object-contain"
+                controls
+                playsInline
+                muted={false}
+                preload="auto"
+                autoPlay
+                controlsList="nodownload"
+                onError={(e) => console.error("Video Error:", e.target.error)}
+              />
+            </div>
           )}
 
-          {/* ✅ Premium popup */}
-          {showPopup && !isPremium && (
-            <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-95">
-              <div className="bg-gradient-to-br from-[#2c5364] to-[#203a43] rounded-xl shadow-2xl p-8 max-w-sm w-full text-center border-2 border-[#4facfe]">
-                <h3 className="text-xl font-bold text-white mb-4">
-                  Premium Required
-                </h3>
-                <p className="text-gray-300 mb-6">
-                  Upgrade to premium to continue watching.
+          {/* ✅ Fullscreen Premium Popup */}
+          {showPopup && !isPremium && isFullscreen && (
+            <div className="fixed inset-0 z-50 flex items-center justify-center bg-gradient-to-br from-[#0f171e] to-[#1a242f]">
+              <div className="w-full h-full flex flex-col items-center justify-center p-6 max-w-2xl mx-auto">
+                
+                {/* Prime Logo */}
+                <div className="mb-8">
+                  <div className="flex items-center gap-3">
+                    <div className="w-30 h-12 bg-gradient-to-r from-[#00a8e1] to-[#00d4ff] rounded-lg flex items-center justify-center shadow-2xl">
+                      <span className="text-white font-bold text-lg">kensdrive</span>
+                    </div>
+                    <div>
+                      <h2 className="text-white text-2xl font-bold">kensdrive Video</h2>
+                      <p className="text-gray-400 text-sm">Exclusive content</p>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Main Content */}
+                <div className="text-center mb-8">
+                  <div className="w-24 h-24 bg-yellow-500 rounded-full flex items-center justify-center mx-auto mb-6 shadow-2xl">
+                    <svg className="w-12 h-12 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+                    </svg>
+                  </div>
+                  
+                  <h1 className="text-4xl font-bold text-white mb-4">
+                    Premium Required
+                  </h1>
+                  
+                  <p className="text-xl text-gray-300 mb-2">
+                    Upgrade to continue watching
+                  </p>
+                  
+                  <p className="text-gray-400 mb-6 max-w-md mx-auto">
+                    Enjoy unlimited access to all our premium content without any interruptions. 
+                    Start your free trial today!
+                  </p>
+
+                  {/* Features */}
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8 max-w-2xl mx-auto">
+                    <div className="text-center p-4 bg-white/5 rounded-lg border border-white/10">
+                      <div className="w-8 h-8 bg-[#00a8e1] rounded-full flex items-center justify-center mx-auto mb-2">
+                        <svg className="w-4 h-4 text-white" fill="currentColor" viewBox="0 0 20 20">
+                          <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                        </svg>
+                      </div>
+                      <p className="text-white text-sm">HD Quality</p>
+                    </div>
+                    
+                    <div className="text-center p-4 bg-white/5 rounded-lg border border-white/10">
+                      <div className="w-8 h-8 bg-[#00a8e1] rounded-full flex items-center justify-center mx-auto mb-2">
+                        <svg className="w-4 h-4 text-white" fill="currentColor" viewBox="0 0 20 20">
+                          <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                        </svg>
+                      </div>
+                      <p className="text-white text-sm">No Ads</p>
+                    </div>
+                    
+                    <div className="text-center p-4 bg-white/5 rounded-lg border border-white/10">
+                      <div className="w-8 h-8 bg-[#00a8e1] rounded-full flex items-center justify-center mx-auto mb-2">
+                        <svg className="w-4 h-4 text-white" fill="currentColor" viewBox="0 0 20 20">
+                          <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                        </svg>
+                      </div>
+                      <p className="text-white text-sm">All Content</p>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Action Buttons */}
+                <div className="flex flex-col sm:flex-row gap-4 w-full max-w-md">
+                  <button
+                    onClick={() => navigate("/subscription")}
+                    className="flex-1 bg-gradient-to-r from-[#00a8e1] to-[#00d4ff] text-white py-4 px-8 rounded-lg font-bold text-lg hover:from-[#0098d1] hover:to-[#00c4ef] transition-all duration-300 shadow-2xl"
+                  >
+                    Get Premium 
+                  </button>
+                  
+                  <button
+                    onClick={handleClosePopup}
+                    className="flex-1 bg-white/10 text-white py-4 px-8 rounded-lg font-semibold text-lg border border-white/20 hover:bg-white/20 transition-all duration-300"
+                  >
+                    Maybe Later
+                  </button>
+                </div>
+
+                {/* Footer Text */}
+                <p className="text-gray-500 text-sm mt-8 text-center">
+                  First month free, then $9.99/month. Cancel anytime.
                 </p>
-                <button
-                  onClick={() => navigate("/subscription")}
-                  className="w-full bg-gradient-to-r from-[#4facfe] to-[#00f2fe] text-white py-3 px-6 rounded-lg font-semibold"
-                >
-                  Get Premium
-                </button>
               </div>
             </div>
           )}
