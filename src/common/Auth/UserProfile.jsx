@@ -633,11 +633,7 @@ export default function UserProfile() {
                           }`}
                       >
                         {transaction.type === "referral_reward" ? "+" : "-"}
-                        {Number(transaction.amount).toLocaleString("en-IN", {
-                          style: "currency",
-                         
-                          minimumFractionDigits: 0,
-                        })}
+                        {transaction.amount} points
                       </td>
 
                     </tr>
