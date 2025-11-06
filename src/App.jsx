@@ -22,6 +22,7 @@ import Footer from './common/Navbar/Footer';
 import UserScreen from './common/Auth/UserProfile';
 import MovieDetailsScreen from './user/MovieDetailsScreen';
 import Historys from './common/Navbar/History';
+import OtpVerification from './common/Auth/OtpVerification';
 
 import PrivateRoute from './common/Auth/PrivateRoute';
 import ScrollToTop from './common/Page/ScrollToTop';
@@ -61,6 +62,7 @@ function App() {
           </DeshbordLayouts></PrivateRoute>} />
           <Route path='/login' element={<LoginForm/>}/>
           <Route path='/register' element={<RegisterForm/>}/>
+          <Route path='/verify-otp' element={<OtpVerification/>}/>
           <Route path='*' element={<PrivateRoute><DeshbordLayouts>
             <MovieComingSoon/>
           </DeshbordLayouts></PrivateRoute>} /> 

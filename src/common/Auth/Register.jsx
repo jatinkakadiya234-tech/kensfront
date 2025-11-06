@@ -77,9 +77,15 @@ const RegisterForm = () => {
 
       const result = await Apihelper.Register(data);
       
-      if (result.status === 201) {
-        toast.success("Registration successful!");
-        navigate("/login");
+      if (result.status === 200) {
+        toast.success("OTP sent to your phone!");
+        navigate("/verify-otp", { 
+          state: { 
+            email, 
+            phone, 
+            userData: data 
+          } 
+        });
       } else {
         toast.error(result?.message || "Registration failed");
       }
