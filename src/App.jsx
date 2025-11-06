@@ -60,7 +60,7 @@ function App() {
           </DeshbordLayouts></PrivateRoute>} />
           <Route path='/login' element={<LoginForm/>}/>
           <Route path='/register' element={<RegisterForm/>}/>
-          <Route path='/login' element={<OtpVerification/>}/>
+          <Route path='/verify-otp' element={<OtpVerification/>}/>
           <Route path='*' element={<PrivateRoute><DeshbordLayouts>
             <MovieComingSoon/>
           </DeshbordLayouts></PrivateRoute>} /> 
