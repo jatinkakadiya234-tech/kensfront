@@ -12,7 +12,6 @@ import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns';
 import PremiumPlans from './Admin/page/PremiumPlans';
 import Orders from './Admin/page/Orders';
 import Withdrawals from './Admin/page/Withdrawals';
-import Trials from './Admin/page/Trials';
 import HomeScreen from './user/Homescreen';
 import Header from './common/Navbar/Navbar';
 import TrialScreen from './common/Navbar/TrialScreen';
@@ -26,7 +25,6 @@ import OtpVerification from './common/Auth/OtpVerification';
 
 import PrivateRoute from './common/Auth/PrivateRoute';
 import ScrollToTop from './common/Page/ScrollToTop';
-import { useEffect } from 'react';
 import { ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 import WebSeriesManagement from './Admin/page/WebSeriesManagement';
@@ -62,7 +60,7 @@ function App() {
           </DeshbordLayouts></PrivateRoute>} />
           <Route path='/login' element={<LoginForm/>}/>
           <Route path='/register' element={<RegisterForm/>}/>
-          <Route path='/verify-otp' element={<OtpVerification/>}/>
+          <Route path='/login' element={<OtpVerification/>}/>
           <Route path='*' element={<PrivateRoute><DeshbordLayouts>
             <MovieComingSoon/>
           </DeshbordLayouts></PrivateRoute>} /> 
