@@ -1,101 +1,49 @@
 @import "tailwindcss";
 
-/* Color Hunt Palette Variables */
-
-/* Custom utility classes for the color palette */
-.bg-primary-dark {
-  background-color: var(--color-dark-charcoal);
+@layer base {
+  :root {
+    --background: 0 0% 100%;
+    --foreground: 222.2 84% 4.9%;
+    --card: 0 0% 100%;
+    --card-foreground: 222.2 84% 4.9%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 222.2 84% 4.9%;
+    --primary: 221.2 83.2% 53.3%;
+    --primary-foreground: 210 40% 98%;
+    --secondary: 210 40% 96%;
+    --secondary-foreground: 222.2 84% 4.9%;
+    --muted: 210 40% 96%;
+    --muted-foreground: 215.4 16.3% 46.9%;
+    --accent: 210 40% 96%;
+    --accent-foreground: 222.2 84% 4.9%;
+    --destructive: 0 84.2% 60.2%;
+    --destructive-foreground: 210 40% 98%;
+    --border: 214.3 31.8% 91.4%;
+    --input: 214.3 31.8% 91.4%;
+    --ring: 221.2 83.2% 53.3%;
+    --radius: 0.5rem;
+  }
+ 
+  .dark {
+    --background: 222.2 84% 4.9%;
+    --foreground: 210 40% 98%;
+    --card: 222.2 84% 4.9%;
+    --card-foreground: 210 40% 98%;
+    --popover: 222.2 84% 4.9%;
+    --popover-foreground: 210 40% 98%;
+    --primary: 217.2 91.2% 59.8%;
+    --primary-foreground: 222.2 84% 4.9%;
+    --secondary: 217.2 32.6% 17.5%;
+    --secondary-foreground: 210 40% 98%;
+    --muted: 217.2 32.6% 17.5%;
+    --muted-foreground: 215 20.2% 65.1%;
+    --accent: 217.2 32.6% 17.5%;
+    --accent-foreground: 210 40% 98%;
+    --destructive: 0 62.8% 30.6%;
+    --destructive-foreground: 210 40% 98%;
+    --border: 217.2 32.6% 17.5%;
+    --input: 217.2 32.6% 17.5%;
+    --ring: 224.3 76.3% 94.1%;
+  }
 }
 
-.bg-primary-medium {
-  background-color: var(--color-medium-gray);
-}
-
-.bg-primary-brown {
-  background-color: var(--color-muted-brown);
-}
-
-.bg-primary-light {
-  background-color: var(--color-light-gray);
-}
-
-.text-primary-dark {
-  color: var(--color-dark-charcoal);
-}
-
-.text-primary-medium {
-  color: var(--color-medium-gray);
-}
-
-.text-primary-brown {
-  color: var(--color-muted-brown);
-}
-
-.text-primary-light {
-  color: var(--color-light-gray);
-}
-
-.border-primary-dark {
-  border-color: var(--color-dark-charcoal);
-}
-
-.border-primary-medium {
-  border-color: var(--color-medium-gray);
-}
-
-.border-primary-brown {
-  border-color: var(--color-muted-brown);
-}
-
-.border-primary-light {
-  border-color: var(--color-light-gray);
-}
-
-/* Gradient backgrounds */
-.bg-gradient-primary {
-  background: linear-gradient(135deg, var(--color-dark-charcoal) 0%, var(--color-medium-gray) 100%);
-}
-
-.bg-gradient-secondary {
-  background: linear-gradient(135deg, var(--color-muted-brown) 0%, var(--color-medium-gray) 100%);
-}
-
-.bg-gradient-accent {
-  background: linear-gradient(135deg, var(--color-light-gray) 0%, var(--color-muted-brown) 100%);
-}
-
-/* Hover effects */
-.hover-bg-primary-medium:hover {
-  background-color: var(--color-medium-gray);
-}
-
-.hover-bg-primary-brown:hover {
-  background-color: var(--color-muted-brown);
-}
-
-.hover-text-primary-light:hover {
-  color: var(--color-light-gray);
-}
-
-/* Focus states */
-.focus-ring-primary:focus {
-  box-shadow: 0 0 0 3px rgba(113, 90, 90, 0.3);
-}
-
-/* Custom scrollbar */
-::-webkit-scrollbar {
-  width: 8px;
-}
-
-::-webkit-scrollbar-track {
-  background: var(--color-dark-charcoal);
-}
-
-::-webkit-scrollbar-thumb {
-  background: var(--color-muted-brown);
-  border-radius: 4px;
-}
-
-::-webkit-scrollbar-thumb:hover {
-  background: var(--color-medium-gray);
-}

@@ -1,6 +1,7 @@
 import React, { useRef, useState, useEffect } from "react";
 import Hls from "hls.js";
 import { useNavigate } from "react-router-dom";
+import VideoPlayer from "../components/VideoPlayer";
 
 export default function MovieDetailsScreen() {
   const [showPopup, setShowPopup] = useState(false);
@@ -31,8 +32,8 @@ export default function MovieDetailsScreen() {
     }
   }, []);
 
-  // ✅ Get video URL from query param
-  let videoUrl = "";
+  // ✅ Get video URL from query param or use default
+  let videoUrl = "https://idr01.zata.ai/kenskensdrive/movies/1080p/1762428920992-823445633.mp4";
   try {
     const params = new URLSearchParams(window.location.search);
     const videoParam = params.get("video");
@@ -41,53 +42,23 @@ export default function MovieDetailsScreen() {
     console.error("Error getting video URL:", error);
   }
 
-  const hasVideo = Boolean(videoUrl);
-  const isHls = hasVideo && /\.m3u8(\?|$)/i.test(videoUrl);
+  const hasVideo = true;
+  const isHls = /\.m3u8(\?|$)/i.test(videoUrl);
 
-  // ✅ Initialize video playback
+  // ✅ Initialize video playback - removed complex HLS logic for MP4
   useEffect(() => {
-    if (!showVideo || !hasVideo) return;
+    if (!showVideo) return;
     const video = videoRef.current;
     if (!video) return;
 
-    const isSafari = /^((?!chrome|android).)*safari/i.test(navigator.userAgent);
-
-    if (isHls) {
-      if (isSafari) {
-        video.src = videoUrl;
-        video.load();
-        video
-          .play()
-          .catch((e) => console.warn("Autoplay blocked on Safari:", e));
-      } else if (Hls.isSupported()) {
-        const hls = new Hls({
-          enableWorker: true,
-          lowLatencyMode: true,
-          debug: false,
-        });
-        hls.loadSource(videoUrl);
-        hls.attachMedia(video);
-        hls.on(Hls.Events.MANIFEST_PARSED, () => {
-          video
-            .play()
-            .catch((e) => console.warn("Autoplay blocked (HLS):", e));
-        });
-        
-        hls.on(Hls.Events.ERROR, (event, data) => {
-          console.error("HLS Error:", data);
-          setVideoError(true);
-        });
-        
-        return () => hls.destroy();
-      } else {
-        video.src = videoUrl;
-        video.load();
-      }
-    } else {
-      video.src = videoUrl;
-      video.load();
-    }
-  }, [showVideo, hasVideo, isHls, videoUrl]);
+    // Direct MP4 playback
+    video.src = videoUrl;
+    video.load();
+    video.play().catch((e) => {
+      console.warn("Autoplay blocked:", e);
+      setVideoError(false); // Don't treat autoplay block as error
+    });
+  }, [showVideo, videoUrl]);
 
   // ✅ Premium check
   useEffect(() => {
@@ -209,7 +180,7 @@ export default function MovieDetailsScreen() {
                 </div>
               </div>
 
-              {/* Movie Info Bottom - FIXED: Added back the movie info */}
+              {/* Movie Info Bottom */}
               <div className="absolute bottom-0 left-0 right-0 p-8 text-white z-20">
                 <div className="max-w-4xl mx-auto">
                   <h1 className="text-4xl md:text-6xl font-bold mb-4 text-white">
@@ -242,41 +213,26 @@ export default function MovieDetailsScreen() {
               </div>
             </div>
           ) : (
-            // ✅ Video Player
-            <div className="relative w-full h-full bg-black">
-              {videoError && (
-                <div className="absolute inset-0 flex items-center justify-center z-10">
-                  <div className="text-white text-center">
-                    <p className="text-xl">Video playback error</p>
-                    <button 
-                      onClick={() => setShowVideo(false)}
-                      className="mt-4 bg-[#00a8e1] px-4 py-2 rounded"
-                    >
-                      Go Back
-                    </button>
-                  </div>
-                </div>
-              )}
-              <video
-                ref={videoRef}
-                className="w-full h-full object-contain"
-                controls
-                playsInline
-                muted={false}
-                preload="auto"
-                autoPlay
-                controlsList="nodownload"
-                onError={handleVideoError}
-              />
-            </div>
+            // ✅ Enhanced Video Player
+            <VideoPlayer
+              videoUrl={videoUrl}
+              thumbnailUrl="https://images.unsplash.com/photo-1489599809505-7c8c62a0f4d4?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=2070&q=80"
+              animeId={123}
+              episodeId="episode-1"
+              episodeTitle="The Grand Adventure - Episode 1"
+              hasNextEpisode={true}
+              hasPreviousEpisode={false}
+              onNextEpisode={() => console.log("Next episode")}
+              onPreviousEpisode={() => console.log("Previous episode")}
+            />
           )}
 
           {/* ✅ Fullscreen Premium Popup */}
-          {showPopup && !isPremium && isFullscreen && (
+          {showPopup && (
             <div className="fixed inset-0 z-50 flex items-center justify-center bg-gradient-to-br from-[#0f171e] to-[#1a242f]">
               <div className="w-full h-full flex flex-col items-center justify-center p-6 max-w-2xl mx-auto">
                 
-                {/* Prime Logo - FIXED: w-30 to w-32 */}
+                {/* Prime Logo */}
                 <div className="mb-8">
                   <div className="flex items-center gap-3">
                     <div className="w-32 h-12 bg-gradient-to-r from-[#00a8e1] to-[#00d4ff] rounded-lg flex items-center justify-center shadow-2xl">

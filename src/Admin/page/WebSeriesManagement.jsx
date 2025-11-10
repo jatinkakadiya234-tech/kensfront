@@ -96,7 +96,7 @@ const WebSeriesManagement = () => {
   const [editVideo1080, setEditVideo1080] = useState(null);
   const [isEditUploading, setIsEditUploading] = useState(false);
 
-  const WATCH_BASE = 'https://kensdrive.co.in/watch?video=';
+  const WATCH_BASE = 'http://localhost:5173/watch?video=';
 
   const getQualitySourceUrl = (episode, quality) => {
     // Backend may store either episode.videoUrl (string) or episode.qualities { '720p': url, '1080p': url }

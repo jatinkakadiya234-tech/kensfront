@@ -227,7 +227,7 @@ const MoviesList = () => {
                           <TableCell align="right" sx={{ color: 'white' }}>
                             {movie?.qualities?.['720p'] ? (
                               (() => {
-                                const fullLink = `https://kensdrive.co.in/watch?video=${encodeURIComponent(
+                                const fullLink = `http://localhost:5173/watch?video=${encodeURIComponent(
                                   movie.qualities['720p']
                                 )}`;
                                 const key = `${movie._id}_720p`;
