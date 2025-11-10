@@ -221,7 +221,7 @@ export default function SubscriptionsScreen() {
                                                     className='bg-gradient-to-r from-[#4facfe] to-[#00f2fe] text-white w-full py-3 rounded-lg font-semibold hover:from-[#3a8dcf] hover:to-[#00c9e0] transition-all duration-200 shadow-md hover:shadow-lg'
                                                     onClick={() => handleRazorpay(plan)}
                                                 >
-                                                    <span className="block">Choose {plan.name} Plan</span>
+                                                    <span className="block">Choose {plan.name === "monthly" ? "monthly" : "Unlimited"} Plan</span>
                                                 </button>
                                             </div>
                                         </div>
