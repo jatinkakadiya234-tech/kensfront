@@ -37,7 +37,10 @@ export default function MovieDetailsScreen() {
   try {
     const params = new URLSearchParams(window.location.search);
     const videoParam = params.get("video");
-    if (videoParam) videoUrl = videoParam;
+    if (videoParam) {
+      videoUrl = decodeURIComponent(videoParam);
+      console.log("Decoded video URL:", videoUrl);
+    }
   } catch (error) {
     console.error("Error getting video URL:", error);
   }

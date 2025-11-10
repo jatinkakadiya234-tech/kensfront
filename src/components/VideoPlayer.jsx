@@ -75,6 +75,15 @@ const VideoPlayer = ({
     } else {
       video.src = videoUrl;
       video.load();
+      
+      // Auto-play for mobile after user interaction
+      const playVideo = () => {
+        video.muted = false;
+        video.play().catch(e => console.log('Play failed:', e));
+      };
+      
+      // Try to play after a short delay
+      setTimeout(playVideo, 100);
     }
   }, [videoUrl]);
 
@@ -224,13 +233,19 @@ const VideoPlayer = ({
         ref={videoRef}
         className={`w-full ${thumbnailUrl ? 'object-contain' : 'object-cover aspect-video'} ${isFullscreen ? 'h-screen' : isTheaterMode ? 'h-auto max-h-[85vh]' : 'h-auto max-h-[70vh]'}`}
         poster={thumbnailUrl}
-        crossOrigin="anonymous"
         onClick={togglePlay}
         onDoubleClick={toggleFullscreen}
         onTouchEnd={togglePlay}
         controls={false}
-        autoPlay
         playsInline
+        muted
+        preload="metadata"
+        onError={(e) => {
+          console.error('Video error:', e.target.error);
+          setIsBuffering(false);
+        }}
+        onLoadStart={() => setIsBuffering(true)}
+        onCanPlay={() => setIsBuffering(false)}
       />
 
       {/* Buffering Loader */}
