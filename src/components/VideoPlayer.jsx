@@ -49,6 +49,7 @@ const VideoPlayer = ({
   const [isTheaterMode, setIsTheaterMode] = useState(false);
   const [is2xSpeed, setIs2xSpeed] = useState(false);
   const [showVolumeIndicator, setShowVolumeIndicator] = useState(false);
+  const [lastTap, setLastTap] = useState(0);
 
   const controlsTimeoutRef = useRef(null);
   const longPressTimerRef = useRef(null);
@@ -187,23 +188,73 @@ const VideoPlayer = ({
     if (!containerRef.current) return;
 
     if (!isFullscreen) {
-      if (containerRef.current.requestFullscreen) {
-        containerRef.current.requestFullscreen();
+      const element = containerRef.current;
+      
+      // Try different fullscreen methods for Telegram and other browsers
+      if (element.requestFullscreen) {
+        element.requestFullscreen();
+      } else if (element.webkitRequestFullscreen) {
+        element.webkitRequestFullscreen();
+      } else if (element.mozRequestFullScreen) {
+        element.mozRequestFullScreen();
+      } else if (element.msRequestFullscreen) {
+        element.msRequestFullscreen();
+      } else {
+        // Fallback for Telegram - simulate fullscreen
+        setIsFullscreen(true);
+        document.body.style.overflow = 'hidden';
+        element.style.position = 'fixed';
+        element.style.top = '0';
+        element.style.left = '0';
+        element.style.width = '100vw';
+        element.style.height = '100vh';
+        element.style.zIndex = '9999';
       }
     } else {
       if (document.exitFullscreen) {
         document.exitFullscreen();
+      } else if (document.webkitExitFullscreen) {
+        document.webkitExitFullscreen();
+      } else if (document.mozCancelFullScreen) {
+        document.mozCancelFullScreen();
+      } else if (document.msExitFullscreen) {
+        document.msExitFullscreen();
+      } else {
+        // Fallback exit
+        setIsFullscreen(false);
+        document.body.style.overflow = '';
+        const element = containerRef.current;
+        element.style.position = '';
+        element.style.top = '';
+        element.style.left = '';
+        element.style.width = '';
+        element.style.height = '';
+        element.style.zIndex = '';
       }
     }
   };
 
   useEffect(() => {
     const handleFullscreenChange = () => {
-      setIsFullscreen(!!document.fullscreenElement);
+      const isFS = !!(document.fullscreenElement || 
+                     document.webkitFullscreenElement || 
+                     document.mozFullScreenElement || 
+                     document.msFullscreenElement);
+      setIsFullscreen(isFS);
     };
 
+    // Listen to all fullscreen events
     document.addEventListener('fullscreenchange', handleFullscreenChange);
-    return () => document.removeEventListener('fullscreenchange', handleFullscreenChange);
+    document.addEventListener('webkitfullscreenchange', handleFullscreenChange);
+    document.addEventListener('mozfullscreenchange', handleFullscreenChange);
+    document.addEventListener('MSFullscreenChange', handleFullscreenChange);
+    
+    return () => {
+      document.removeEventListener('fullscreenchange', handleFullscreenChange);
+      document.removeEventListener('webkitfullscreenchange', handleFullscreenChange);
+      document.removeEventListener('mozfullscreenchange', handleFullscreenChange);
+      document.removeEventListener('MSFullscreenChange', handleFullscreenChange);
+    };
   }, []);
 
   const handleSpeedChange = (speed) => {
@@ -231,11 +282,36 @@ const VideoPlayer = ({
       {/* Video Element */}
       <video
         ref={videoRef}
-        className={`w-full ${thumbnailUrl ? 'object-contain' : 'object-cover aspect-video'} ${isFullscreen ? 'h-screen' : isTheaterMode ? 'h-auto max-h-[85vh]' : 'h-auto max-h-[70vh]'}`}
+        className={`w-full ${isFullscreen ? 'h-screen w-screen object-cover' : thumbnailUrl ? 'object-contain aspect-video' : 'object-cover aspect-video'} ${isTheaterMode ? 'h-auto max-h-[85vh]' : 'h-auto max-h-[70vh]'}`}
         poster={thumbnailUrl}
-        onClick={togglePlay}
+        onClick={(e) => {
+          const now = Date.now();
+          const timeDiff = now - lastTap;
+          
+          if (timeDiff < 300 && timeDiff > 0) {
+            // Double tap - skip 10 seconds
+            const rect = e.currentTarget.getBoundingClientRect();
+            const clickX = e.clientX - rect.left;
+            const centerX = rect.width / 2;
+            
+            if (clickX > centerX) {
+              // Right side - forward 10s
+              videoRef.current.currentTime = Math.min(videoRef.current.currentTime + 10, duration);
+            } else {
+              // Left side - backward 10s
+              videoRef.current.currentTime = Math.max(videoRef.current.currentTime - 10, 0);
+            }
+          } else {
+            // Single tap - toggle play
+            setTimeout(() => {
+              if (Date.now() - lastTap > 300) {
+                togglePlay();
+              }
+            }, 300);
+          }
+          setLastTap(now);
+        }}
         onDoubleClick={toggleFullscreen}
-        onTouchEnd={togglePlay}
         controls={false}
         playsInline
         muted
@@ -260,10 +336,10 @@ const VideoPlayer = ({
         className={`absolute inset-0 bg-gradient-to-t from-black/90 via-transparent to-black/60 transition-opacity duration-300 pointer-events-none ${showControls || !isPlaying ? 'opacity-100' : 'opacity-0'}`}
       >
         {/* Bottom Controls Bar */}
-        <div className="absolute bottom-0 left-0 right-0 p-4 space-y-2 pointer-events-auto">
+        <div className={`absolute bottom-0 left-0 right-0 ${isFullscreen ? 'p-6 space-y-4' : 'p-4 space-y-2'} pointer-events-auto`}>
           {/* Progress Bar */}
           <div className="space-y-1">
-            <div className="relative h-2 w-full bg-gray-600 rounded-full cursor-pointer" onClick={(e) => {
+            <div className={`relative ${isFullscreen ? 'h-3' : 'h-2'} w-full bg-gray-600 rounded-full cursor-pointer`} onClick={(e) => {
               const rect = e.currentTarget.getBoundingClientRect();
               const percent = (e.clientX - rect.left) / rect.width;
               const newTime = percent * duration;
@@ -274,11 +350,11 @@ const VideoPlayer = ({
                 style={{ width: `${duration ? (currentTime / duration) * 100 : 0}%` }}
               />
               <div 
-                className="absolute top-1/2 w-4 h-4 bg-[#00a8e1] rounded-full border-2 border-white transform -translate-y-1/2 -translate-x-1/2"
+                className={`absolute top-1/2 ${isFullscreen ? 'w-5 h-5' : 'w-4 h-4'} bg-[#00a8e1] rounded-full border-2 border-white transform -translate-y-1/2 -translate-x-1/2`}
                 style={{ left: `${duration ? (currentTime / duration) * 100 : 0}%` }}
               />
             </div>
-            <div className="flex justify-between text-xs text-white/70">
+            <div className={`flex justify-between ${isFullscreen ? 'text-sm' : 'text-xs'} text-white/70`}>
               <span>{formatTime(currentTime)}</span>
               <span>{formatTime(duration)}</span>
             </div>
@@ -292,12 +368,12 @@ const VideoPlayer = ({
                 <Tooltip>
                   <TooltipTrigger asChild>
                     <Button
-                      size="sm"
+                      size={isFullscreen ? "default" : "sm"}
                       variant="ghost"
                       onClick={togglePlay}
-                      className="text-[#00a8e1] hover:bg-[#00a8e1]/20 h-10 w-10 p-0"
+                      className={`text-[#00a8e1] hover:bg-[#00a8e1]/20 ${isFullscreen ? 'h-12 w-12' : 'h-10 w-10'} p-0`}
                     >
-                      {isPlaying ? <Pause className="h-5 w-5 text-[#00a8e1]" /> : <Play className="h-5 w-5 text-[#00a8e1]" />}
+                      {isPlaying ? <Pause className={`${isFullscreen ? 'h-6 w-6' : 'h-5 w-5'} text-[#00a8e1]`} /> : <Play className={`${isFullscreen ? 'h-6 w-6' : 'h-5 w-5'} text-[#00a8e1]`} />}
                     </Button>
                   </TooltipTrigger>
                   <TooltipContent side="top">
@@ -310,12 +386,12 @@ const VideoPlayer = ({
                   <Tooltip>
                     <TooltipTrigger asChild>
                       <Button
-                        size="sm"
+                        size={isFullscreen ? "default" : "sm"}
                         variant="ghost"
                         onClick={toggleMute}
-                        className="text-[#00a8e1] hover:bg-[#00a8e1]/20 h-10 w-10 p-0"
+                        className={`text-[#00a8e1] hover:bg-[#00a8e1]/20 ${isFullscreen ? 'h-12 w-12' : 'h-10 w-10'} p-0`}
                       >
-                        {isMuted || volume === 0 ? <VolumeX className="h-5 w-5 text-[#00a8e1]" /> : <Volume2 className="h-5 w-5 text-[#00a8e1]" />}
+                        {isMuted || volume === 0 ? <VolumeX className={`${isFullscreen ? 'h-6 w-6' : 'h-5 w-5'} text-[#00a8e1]`} /> : <Volume2 className={`${isFullscreen ? 'h-6 w-6' : 'h-5 w-5'} text-[#00a8e1]`} />}
                       </Button>
                     </TooltipTrigger>
                     <TooltipContent side="top">
@@ -379,12 +455,12 @@ const VideoPlayer = ({
                 <Tooltip>
                   <TooltipTrigger asChild>
                     <Button
-                      size="sm"
+                      size={isFullscreen ? "default" : "sm"}
                       variant="ghost"
                       onClick={toggleFullscreen}
-                      className="text-[#00a8e1] hover:bg-[#00a8e1]/20 h-10 w-10 p-0"
+                      className={`text-[#00a8e1] hover:bg-[#00a8e1]/20 ${isFullscreen ? 'h-12 w-12' : 'h-10 w-10'} p-0`}
                     >
-                      {isFullscreen ? <Minimize className="h-5 w-5 text-[#00a8e1]" /> : <Maximize className="h-5 w-5 text-[#00a8e1]" />}
+                      {isFullscreen ? <Minimize className={`h-6 w-6 text-[#00a8e1]`} /> : <Maximize className={`h-5 w-5 text-[#00a8e1]`} />}
                     </Button>
                   </TooltipTrigger>
                   <TooltipContent side="top">
