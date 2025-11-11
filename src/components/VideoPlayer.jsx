@@ -274,7 +274,7 @@ const VideoPlayer = ({
   return (
     <div
       ref={containerRef}
-      className="relative w-full bg-black rounded-lg overflow-hidden group"
+      className="relative w-full max-w-full bg-black rounded-lg overflow-hidden group"
       onMouseMove={showControlsTemporarily}
       onMouseLeave={() => isPlaying && setShowControls(false)}
       onTouchStart={showControlsTemporarily}
@@ -282,7 +282,7 @@ const VideoPlayer = ({
       {/* Video Element */}
       <video
         ref={videoRef}
-        className={`w-full ${isFullscreen ? 'h-screen w-full object-cover' : thumbnailUrl ? 'object-contain aspect-video' : 'object-cover aspect-video'} ${isTheaterMode ? 'h-auto max-h-[85vh]' : 'h-auto max-h-[70vh]'}`}
+        className={`w-full ${isFullscreen ? 'h-screen w-screen object-cover' : 'aspect-video object-contain'} min-h-[200px] max-h-[80vh]`}
         poster={thumbnailUrl}
         onClick={(e) => {
           const now = Date.now();
@@ -335,7 +335,7 @@ const VideoPlayer = ({
         className={`absolute inset-0 bg-gradient-to-t from-black/90 via-transparent to-black/60 transition-opacity duration-300 pointer-events-none ${showControls || !isPlaying ? 'opacity-100' : 'opacity-0'}`}
       >
         {/* Bottom Controls Bar */}
-        <div className={`absolute bottom-0 left-0 right-0 ${isFullscreen ? 'p-6 space-y-4' : 'p-4 space-y-2'} pointer-events-auto`}>
+        <div className={`absolute bottom-0 left-0 right-0 ${isFullscreen ? 'p-6 space-y-4' : 'p-2 sm:p-4 space-y-2'} pointer-events-auto`}>
           {/* Progress Bar */}
           <div className="space-y-1">
             <div className={`relative ${isFullscreen ? 'h-3' : 'h-2'} w-full bg-gray-600 rounded-full cursor-pointer`} onClick={(e) => {
