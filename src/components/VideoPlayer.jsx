@@ -282,14 +282,14 @@ const VideoPlayer = ({
       {/* Video Element */}
       <video
         ref={videoRef}
-        className={`w-full ${isFullscreen ? 'h-screen w-screen object-cover' : thumbnailUrl ? 'object-contain aspect-video' : 'object-cover aspect-video'} ${isTheaterMode ? 'h-auto max-h-[85vh]' : 'h-auto max-h-[70vh]'}`}
+        className={`w-full ${isFullscreen ? 'h-screen w-full object-cover' : thumbnailUrl ? 'object-contain aspect-video' : 'object-cover aspect-video'} ${isTheaterMode ? 'h-auto max-h-[85vh]' : 'h-auto max-h-[70vh]'}`}
         poster={thumbnailUrl}
         onClick={(e) => {
           const now = Date.now();
           const timeDiff = now - lastTap;
           
           if (timeDiff < 300 && timeDiff > 0) {
-            // Double tap - skip 10 seconds
+            // Double tap - skip 10 seconds (works in both normal and fullscreen)
             const rect = e.currentTarget.getBoundingClientRect();
             const clickX = e.clientX - rect.left;
             const centerX = rect.width / 2;
@@ -302,7 +302,7 @@ const VideoPlayer = ({
               videoRef.current.currentTime = Math.max(videoRef.current.currentTime - 10, 0);
             }
           } else {
-            // Single tap - toggle play
+            // Single tap - only toggle play (no fullscreen)
             setTimeout(() => {
               if (Date.now() - lastTap > 300) {
                 togglePlay();
@@ -311,7 +311,6 @@ const VideoPlayer = ({
           }
           setLastTap(now);
         }}
-        onDoubleClick={toggleFullscreen}
         controls={false}
         playsInline
         muted
