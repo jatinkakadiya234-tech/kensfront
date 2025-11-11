@@ -158,16 +158,7 @@ export default function Footer() {
               >
                 <Instagram className="text-white" />
               </a>
-              <a
-                href="#"
-                className="p-3 rounded-full transition-all duration-300 hover:scale-110 hover:shadow-lg"
-                style={{
-                  background: "linear-gradient(45deg, #0077b5, #4facfe)",
-                }}
-                aria-label="LinkedIn"
-              >
-                <LinkedInIcon className="text-white" />
-              </a>
+              
             </div>
             <div className="mt-4 text-gray-300 text-sm">
               <p>Follow us for updates and cloud storage tips</p>
