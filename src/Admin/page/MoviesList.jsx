@@ -35,7 +35,7 @@ const MoviesList = () => {
   const [totalMovies, setTotalMovies] = useState(0);
   const [loading, setLoading] = useState(false);
   const [copied, setCopied] = useState({});
-  const pageSize = 7;
+  const [pageSize, setPageSize] = useState(10);
 
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
@@ -52,10 +52,10 @@ const MoviesList = () => {
   };
 
   // ---------- Fetch Movies ----------
-  const ListMovis = async (currentPage = 1) => {
+  const ListMovis = async (currentPage = 1, currentPageSize = pageSize) => {
     try {
       setLoading(true);
-      const res = await Apihelper.ListMovise(currentPage, pageSize);
+      const res = await Apihelper.ListMovise(currentPage, currentPageSize);
       const data = res?.data?.data;
       setMovies(data?.movies || []);
       setTotalMovies(data?.total || 0);
@@ -69,8 +69,39 @@ const MoviesList = () => {
   };
 
   useEffect(() => {
-    ListMovis(page);
-  }, [page]);
+    ListMovis(page, pageSize);
+  }, [page, pageSize]);
+
+  const handlePageSizeChange = (newSize) => {
+    setPageSize(newSize);
+    setPage(1);
+  };
+
+  const getVisiblePages = () => {
+    const delta = 2;
+    const range = [];
+    const rangeWithDots = [];
+    
+    for (let i = Math.max(2, page - delta); i <= Math.min(totalPages - 1, page + delta); i++) {
+      range.push(i);
+    }
+    
+    if (page - delta > 2) {
+      rangeWithDots.push(1, '...');
+    } else {
+      rangeWithDots.push(1);
+    }
+    
+    rangeWithDots.push(...range);
+    
+    if (page + delta < totalPages - 1) {
+      rangeWithDots.push('...', totalPages);
+    } else if (totalPages > 1) {
+      rangeWithDots.push(totalPages);
+    }
+    
+    return rangeWithDots;
+  };
 
   // ---------- Delete Movie ----------
   const handleDeleteMovie = async (id) => {
@@ -346,34 +377,98 @@ const MoviesList = () => {
         <Box
           sx={{
             display: 'flex',
-            alignItems: 'center',
+            flexDirection: { xs: 'column', md: 'row' },
+            alignItems: { xs: 'stretch', md: 'center' },
             justifyContent: 'space-between',
+            gap: 2,
             mt: 2,
             color: 'white',
           }}
         >
-          <Typography variant="body2" sx={{ color: 'rgba(255,255,255,0.7)' }}>
-            Showing page {page} of {totalPages} — Total {totalMovies} movies
-          </Typography>
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, flexWrap: 'wrap' }}>
+            <Typography variant="body2" sx={{ color: 'rgba(255,255,255,0.7)' }}>
+              Showing {Math.min(pageSize, totalMovies)} of {totalMovies} movies
+            </Typography>
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+              <Typography variant="body2" sx={{ color: 'rgba(255,255,255,0.7)' }}>
+                Show:
+              </Typography>
+              <select
+                value={pageSize}
+                onChange={(e) => handlePageSizeChange(Number(e.target.value))}
+                style={{
+                  backgroundColor: 'rgba(255,255,255,0.1)',
+                  color: 'white',
+                  border: '1px solid rgba(255,255,255,0.3)',
+                  borderRadius: '4px',
+                  padding: '4px 8px',
+                  fontSize: '14px'
+                }}
+              >
+                <option value={5} style={{ backgroundColor: '#1a1a1a', color: 'white' }}>5</option>
+                <option value={10} style={{ backgroundColor: '#1a1a1a', color: 'white' }}>10</option>
+                <option value={25} style={{ backgroundColor: '#1a1a1a', color: 'white' }}>25</option>
+                <option value={50} style={{ backgroundColor: '#1a1a1a', color: 'white' }}>50</option>
+              </select>
+            </Box>
+          </Box>
+          
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, flexWrap: 'wrap', justifyContent: { xs: 'center', md: 'flex-end' } }}>
+            <Button
+              variant="outlined"
+              disabled={page === 1}
+              onClick={() => setPage(1)}
+              sx={{ borderColor: 'rgba(255,255,255,0.3)', color: 'white', minWidth: 'auto', px: 1 }}
+            >
+              ««
+            </Button>
             <Button
               variant="outlined"
               disabled={page === 1}
               onClick={() => setPage((p) => Math.max(1, p - 1))}
-              sx={{ borderColor: 'rgba(255,255,255,0.3)', color: 'white' }}
+              sx={{ borderColor: 'rgba(255,255,255,0.3)', color: 'white', minWidth: 'auto', px: 1 }}
             >
-              Previous
+              ‹
             </Button>
-            <Typography variant="body2" sx={{ color: 'rgba(255,255,255,0.7)' }}>
-              Page {page}
-            </Typography>
+            
+            {getVisiblePages().map((pageNum, index) => (
+              pageNum === '...' ? (
+                <Typography key={index} sx={{ color: 'rgba(255,255,255,0.5)', px: 1 }}>...</Typography>
+              ) : (
+                <Button
+                  key={index}
+                  variant={page === pageNum ? 'contained' : 'outlined'}
+                  onClick={() => setPage(pageNum)}
+                  sx={{
+                    borderColor: 'rgba(255,255,255,0.3)',
+                    color: page === pageNum ? 'black' : 'white',
+                    backgroundColor: page === pageNum ? 'white' : 'transparent',
+                    minWidth: '40px',
+                    '&:hover': {
+                      backgroundColor: page === pageNum ? 'rgba(255,255,255,0.9)' : 'rgba(255,255,255,0.1)'
+                    }
+                  }}
+                >
+                  {pageNum}
+                </Button>
+              )
+            ))}
+            
             <Button
               variant="outlined"
               disabled={page === totalPages}
               onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
-              sx={{ borderColor: 'rgba(255,255,255,0.3)', color: 'white' }}
+              sx={{ borderColor: 'rgba(255,255,255,0.3)', color: 'white', minWidth: 'auto', px: 1 }}
             >
-              Next
+              ›
+            </Button>
+            <Button
+              variant="outlined"
+              disabled={page === totalPages}
+              onClick={() => setPage(totalPages)}
+              sx={{ borderColor: 'rgba(255,255,255,0.3)', color: 'white', minWidth: 'auto', px: 1 }}
+            >
+              »»
             </Button>
           </Box>
         </Box>

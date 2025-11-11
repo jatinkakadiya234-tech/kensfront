@@ -184,26 +184,7 @@ export default function MovieDetailsScreen() {
               </div>
 
               {/* Movie Info Bottom */}
-              <div className="absolute bottom-0 left-0 right-0 p-8 text-white z-20">
-                <div className="max-w-4xl mx-auto">
-                  <h1 className="text-4xl md:text-6xl font-bold mb-4 text-white">
-                    The Grand Adventure
-                  </h1>
-                  <div className="flex items-center gap-4 mb-4">
-                    <span className="bg-[#00a8e1] text-white px-3 py-1 rounded text-sm font-semibold">
-                      HD
-                    </span>
-                    <span className="text-gray-300">2024</span>
-                    <span className="text-gray-300">2h 18m</span>
-                    <span className="border border-gray-400 px-2 py-1 rounded text-xs text-gray-300">
-                      13+
-                    </span>
-                  </div>
-                  <p className="text-gray-300 text-lg max-w-2xl">
-                    An epic journey through uncharted territories. Join our heroes as they discover the secrets of the ancient world.
-                  </p>
-                </div>
-              </div>
+       
 
               {/* Prime Logo */}
               <div className="absolute top-6 left-6 z-20">
@@ -221,8 +202,7 @@ export default function MovieDetailsScreen() {
               videoUrl={videoUrl}
               thumbnailUrl="https://images.unsplash.com/photo-1489599809505-7c8c62a0f4d4?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=2070&q=80"
               animeId={123}
-              episodeId="episode-1"
-              episodeTitle="The Grand Adventure - Episode 1"
+            
               hasNextEpisode={true}
               hasPreviousEpisode={false}
               onNextEpisode={() => console.log("Next episode")}
