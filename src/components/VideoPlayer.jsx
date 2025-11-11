@@ -282,7 +282,7 @@ const VideoPlayer = ({
       {/* Video Element */}
       <video
         ref={videoRef}
-        className={`w-full ${isFullscreen ? 'h-screen w-screen object-cover' : 'aspect-video object-contain'} min-h-[200px] sm:max-h-[80vh] max-h-[50vh]`}
+        className={`w-full ${isFullscreen ? 'h-full w-screen object-cover' : 'h-screen w-screen object-cover'} `}
         poster={thumbnailUrl}
         onClick={(e) => {
           const now = Date.now();
