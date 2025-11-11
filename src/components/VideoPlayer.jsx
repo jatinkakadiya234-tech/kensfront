@@ -282,7 +282,7 @@ const VideoPlayer = ({
       {/* Video Element */}
       <video
         ref={videoRef}
-        className={`w-full ${isFullscreen ? 'h-screen w-screen object-cover' : 'aspect-video object-contain'} min-h-[200px] max-h-[80vh]`}
+        className={`w-full ${isFullscreen ? 'h-screen w-screen object-cover' : 'aspect-video object-contain'} min-h-[200px] sm:max-h-[80vh] max-h-[50vh]`}
         poster={thumbnailUrl}
         onClick={(e) => {
           const now = Date.now();
@@ -335,10 +335,10 @@ const VideoPlayer = ({
         className={`absolute inset-0 bg-gradient-to-t from-black/90 via-transparent to-black/60 transition-opacity duration-300 pointer-events-none ${showControls || !isPlaying ? 'opacity-100' : 'opacity-0'}`}
       >
         {/* Bottom Controls Bar */}
-        <div className={`absolute bottom-0 left-0 right-0 ${isFullscreen ? 'p-6 space-y-4' : 'p-2 sm:p-4 space-y-2'} pointer-events-auto`}>
+        <div className={`absolute bottom-0 left-0 right-0 ${isFullscreen ? 'p-4 sm:p-6 space-y-3 sm:space-y-4' : 'p-2 space-y-2'} pointer-events-auto`}>
           {/* Progress Bar */}
           <div className="space-y-1">
-            <div className={`relative ${isFullscreen ? 'h-3' : 'h-2'} w-full bg-gray-600 rounded-full cursor-pointer`} onClick={(e) => {
+            <div className={`relative ${isFullscreen ? 'h-3 sm:h-4' : 'h-3 sm:h-2'} w-full bg-gray-600 rounded-full cursor-pointer`} onClick={(e) => {
               const rect = e.currentTarget.getBoundingClientRect();
               const percent = (e.clientX - rect.left) / rect.width;
               const newTime = percent * duration;
@@ -349,11 +349,11 @@ const VideoPlayer = ({
                 style={{ width: `${duration ? (currentTime / duration) * 100 : 0}%` }}
               />
               <div 
-                className={`absolute top-1/2 ${isFullscreen ? 'w-5 h-5' : 'w-4 h-4'} bg-[#00a8e1] rounded-full border-2 border-white transform -translate-y-1/2 -translate-x-1/2`}
+                className={`absolute top-1/2 ${isFullscreen ? 'w-5 h-5 sm:w-6 sm:h-6' : 'w-5 h-5 sm:w-4 sm:h-4'} bg-[#00a8e1] rounded-full border-2 border-white transform -translate-y-1/2 -translate-x-1/2`}
                 style={{ left: `${duration ? (currentTime / duration) * 100 : 0}%` }}
               />
             </div>
-            <div className={`flex justify-between ${isFullscreen ? 'text-sm' : 'text-xs'} text-white/70`}>
+            <div className={`flex justify-between ${isFullscreen ? 'text-sm' : 'text-sm sm:text-xs'} text-white/70`}>
               <span>{formatTime(currentTime)}</span>
               <span>{formatTime(duration)}</span>
             </div>
@@ -361,7 +361,7 @@ const VideoPlayer = ({
 
           {/* Control Buttons */}
           <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-1 sm:gap-2">
               <TooltipProvider>
                 {/* Play/Pause */}
                 <Tooltip>
@@ -370,9 +370,9 @@ const VideoPlayer = ({
                       size={isFullscreen ? "default" : "sm"}
                       variant="ghost"
                       onClick={togglePlay}
-                      className={`text-[#00a8e1] hover:bg-[#00a8e1]/20 ${isFullscreen ? 'h-12 w-12' : 'h-10 w-10'} p-0`}
+                      className={`text-[#00a8e1] hover:bg-[#00a8e1]/20 ${isFullscreen ? 'h-12 w-12 sm:h-14 sm:w-14' : 'h-12 w-12 sm:h-10 sm:w-10'} p-0`}
                     >
-                      {isPlaying ? <Pause className={`${isFullscreen ? 'h-6 w-6' : 'h-5 w-5'} text-[#00a8e1]`} /> : <Play className={`${isFullscreen ? 'h-6 w-6' : 'h-5 w-5'} text-[#00a8e1]`} />}
+                      {isPlaying ? <Pause className={`${isFullscreen ? 'h-6 w-6 sm:h-7 sm:w-7' : 'h-6 w-6 sm:h-5 sm:w-5'} text-[#00a8e1]`} /> : <Play className={`${isFullscreen ? 'h-6 w-6 sm:h-7 sm:w-7' : 'h-6 w-6 sm:h-5 sm:w-5'} text-[#00a8e1]`} />}
                     </Button>
                   </TooltipTrigger>
                   <TooltipContent side="top">
@@ -381,23 +381,23 @@ const VideoPlayer = ({
                 </Tooltip>
 
                 {/* Volume */}
-                <div className="flex items-center gap-2 group/volume">
+                <div className="flex items-center gap-1 sm:gap-2 group/volume">
                   <Tooltip>
                     <TooltipTrigger asChild>
                       <Button
                         size={isFullscreen ? "default" : "sm"}
                         variant="ghost"
                         onClick={toggleMute}
-                        className={`text-[#00a8e1] hover:bg-[#00a8e1]/20 ${isFullscreen ? 'h-12 w-12' : 'h-10 w-10'} p-0`}
+                        className={`text-[#00a8e1] hover:bg-[#00a8e1]/20 ${isFullscreen ? 'h-12 w-12 sm:h-14 sm:w-14' : 'h-12 w-12 sm:h-10 sm:w-10'} p-0`}
                       >
-                        {isMuted || volume === 0 ? <VolumeX className={`${isFullscreen ? 'h-6 w-6' : 'h-5 w-5'} text-[#00a8e1]`} /> : <Volume2 className={`${isFullscreen ? 'h-6 w-6' : 'h-5 w-5'} text-[#00a8e1]`} />}
+                        {isMuted || volume === 0 ? <VolumeX className={`${isFullscreen ? 'h-6 w-6 sm:h-7 sm:w-7' : 'h-6 w-6 sm:h-5 sm:w-5'} text-[#00a8e1]`} /> : <Volume2 className={`${isFullscreen ? 'h-6 w-6 sm:h-7 sm:w-7' : 'h-6 w-6 sm:h-5 sm:w-5'} text-[#00a8e1]`} />}
                       </Button>
                     </TooltipTrigger>
                     <TooltipContent side="top">
                       <p>Mute/Unmute</p>
                     </TooltipContent>
                   </Tooltip>
-                  <div className="hidden md:block w-0 group-hover/volume:w-24 opacity-0 group-hover/volume:opacity-100 transition-all overflow-hidden">
+                  <div className="hidden lg:block w-0 group-hover/volume:w-24 opacity-0 group-hover/volume:opacity-100 transition-all overflow-hidden">
                     <div className="relative h-3 w-full bg-gray-600 rounded-full cursor-pointer overflow-hidden" onClick={(e) => {
                       const rect = e.currentTarget.getBoundingClientRect();
                       const percent = (e.clientX - rect.left) / rect.width;
@@ -415,18 +415,19 @@ const VideoPlayer = ({
                   </div>
                 </div>
 
-                {/* Speed Control */}
-                <DropdownMenu>
-                  <DropdownMenuTrigger asChild>
-                    <Button
-                      size="sm"
-                      variant="ghost"
-                      className="text-[#00a8e1] hover:bg-[#00a8e1]/20 gap-1"
-                    >
-                      <Zap className="h-4 w-4 text-[#00a8e1]" />
-                      <span className="text-xs">{playbackSpeed}x</span>
-                    </Button>
-                  </DropdownMenuTrigger>
+                {/* Speed Control - Hidden on mobile */}
+                <div className="hidden sm:block">
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        className="text-[#00a8e1] hover:bg-[#00a8e1]/20 gap-1"
+                      >
+                        <Zap className="h-4 w-4 text-[#00a8e1]" />
+                        <span className="text-xs">{playbackSpeed}x</span>
+                      </Button>
+                    </DropdownMenuTrigger>
                   <DropdownMenuContent className="bg-black/95 backdrop-blur-sm border-white/10 text-white">
                     <DropdownMenuLabel>Playback Speed</DropdownMenuLabel>
                     <DropdownMenuSeparator className="bg-white/10" />
@@ -443,12 +444,13 @@ const VideoPlayer = ({
                       </DropdownMenuItem>
                     ))}
                   </DropdownMenuContent>
-                </DropdownMenu>
+                  </DropdownMenu>
+                </div>
               </TooltipProvider>
             </div>
 
             {/* Right side controls */}
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-1 sm:gap-2">
               <TooltipProvider>
                 {/* Fullscreen */}
                 <Tooltip>
@@ -457,9 +459,9 @@ const VideoPlayer = ({
                       size={isFullscreen ? "default" : "sm"}
                       variant="ghost"
                       onClick={toggleFullscreen}
-                      className={`text-[#00a8e1] hover:bg-[#00a8e1]/20 ${isFullscreen ? 'h-12 w-12' : 'h-10 w-10'} p-0`}
+                      className={`text-[#00a8e1] hover:bg-[#00a8e1]/20 ${isFullscreen ? 'h-12 w-12 sm:h-14 sm:w-14' : 'h-12 w-12 sm:h-10 sm:w-10'} p-0`}
                     >
-                      {isFullscreen ? <Minimize className={`h-6 w-6 text-[#00a8e1]`} /> : <Maximize className={`h-5 w-5 text-[#00a8e1]`} />}
+                      {isFullscreen ? <Minimize className={`h-6 w-6 sm:h-7 sm:w-7 text-[#00a8e1]`} /> : <Maximize className={`h-6 w-6 sm:h-5 sm:w-5 text-[#00a8e1]`} />}
                     </Button>
                   </TooltipTrigger>
                   <TooltipContent side="top">
