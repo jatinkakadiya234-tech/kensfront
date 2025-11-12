@@ -95,7 +95,13 @@ const VideoPlayer = ({
 
     const handleTimeUpdate = () => setCurrentTime(video.currentTime);
     const handleDurationChange = () => setDuration(video.duration);
-    const handlePlay = () => setIsPlaying(true);
+    const handlePlay = () => {
+      setIsPlaying(true);
+      // Auto-enter fullscreen on play
+      if (!isFullscreen) {
+        setTimeout(() => toggleFullscreen(), 100);
+      }
+    };
     const handlePause = () => setIsPlaying(false);
     const handleVolumeChange = () => {
       setVolume(video.volume);
@@ -210,6 +216,11 @@ const VideoPlayer = ({
         element.style.height = '100vh';
         element.style.zIndex = '9999';
       }
+      
+      // Force landscape on mobile
+      if (screen.orientation?.lock) {
+        screen.orientation.lock('landscape').catch(() => {});
+      }
     } else {
       if (document.exitFullscreen) {
         document.exitFullscreen();
@@ -230,6 +241,11 @@ const VideoPlayer = ({
         element.style.width = '';
         element.style.height = '';
         element.style.zIndex = '';
+      }
+      
+      // Unlock orientation
+      if (screen.orientation?.unlock) {
+        screen.orientation.unlock();
       }
     }
   };
@@ -287,6 +303,7 @@ const VideoPlayer = ({
         onClick={(e) => {
           const now = Date.now();
           const timeDiff = now - lastTap;
+          const isMobile = window.innerWidth <= 768 || 'ontouchstart' in window;
           
           if (timeDiff < 300 && timeDiff > 0) {
             // Double tap - skip 10 seconds (works in both normal and fullscreen)
@@ -302,10 +319,16 @@ const VideoPlayer = ({
               videoRef.current.currentTime = Math.max(videoRef.current.currentTime - 10, 0);
             }
           } else {
-            // Single tap - only toggle play (no fullscreen)
+            // Single tap
             setTimeout(() => {
               if (Date.now() - lastTap > 300) {
-                togglePlay();
+                if (isMobile && !isFullscreen) {
+                  // Mobile: Enter fullscreen on first click
+                  toggleFullscreen();
+                } else {
+                  // Desktop or already fullscreen: Toggle play
+                  togglePlay();
+                }
               }
             }, 300);
           }

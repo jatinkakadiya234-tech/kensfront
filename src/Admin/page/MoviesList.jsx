@@ -35,7 +35,7 @@ const MoviesList = () => {
   const [totalMovies, setTotalMovies] = useState(0);
   const [loading, setLoading] = useState(false);
   const [copied, setCopied] = useState({});
-  const [pageSize, setPageSize] = useState(10);
+  const [pageSize, setPageSize] = useState(25);
 
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
@@ -405,8 +405,8 @@ const MoviesList = () => {
                   fontSize: '14px'
                 }}
               >
-                <option value={5} style={{ backgroundColor: '#1a1a1a', color: 'white' }}>5</option>
-                <option value={10} style={{ backgroundColor: '#1a1a1a', color: 'white' }}>10</option>
+                {/* <option value={5} style={{ backgroundColor: '#1a1a1a', color: 'white' }}>5</option>
+                <option value={10} style={{ backgroundColor: '#1a1a1a', color: 'white' }}>10</option> */}
                 <option value={25} style={{ backgroundColor: '#1a1a1a', color: 'white' }}>25</option>
                 <option value={50} style={{ backgroundColor: '#1a1a1a', color: 'white' }}>50</option>
               </select>
