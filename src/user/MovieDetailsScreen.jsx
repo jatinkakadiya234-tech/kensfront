@@ -9,6 +9,7 @@ export default function MovieDetailsScreen() {
   const [showVideo, setShowVideo] = useState(false);
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [videoError, setVideoError] = useState(false);
+  const [showNoMoviePopup, setShowNoMoviePopup] = useState(false);
 
   const videoRef = useRef(null);
   const navigate = useNavigate();
@@ -33,7 +34,7 @@ export default function MovieDetailsScreen() {
   }, []);
 
   // ✅ Get video URL from query param or use default
-  let videoUrl = "https://idr01.zata.ai/kenskensdrive/movies/1080p/1762428920992-823445633.mp4";
+  let videoUrl = "";
   try {
     const params = new URLSearchParams(window.location.search);
     const videoParam = params.get("video");
@@ -45,8 +46,15 @@ export default function MovieDetailsScreen() {
     console.error("Error getting video URL:", error);
   }
 
-  const hasVideo = true;
+  const hasVideo = !!videoUrl;
   const isHls = /\.m3u8(\?|$)/i.test(videoUrl);
+
+  // Show no movie popup if no video URL
+  useEffect(() => {
+    if (!videoUrl) {
+      setShowNoMoviePopup(true);
+    }
+  }, [videoUrl]);
 
   // ✅ Initialize video playback - removed complex HLS logic for MP4
   useEffect(() => {
@@ -232,6 +240,42 @@ export default function MovieDetailsScreen() {
 
           {/* ✅ Fullscreen Premium Popup */}
           
+        </div>
+      )}
+
+      {/* No Movie Popup */}
+      {showNoMoviePopup && (
+        <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-gradient-to-br from-[#0f171e] to-[#1a242f] p-2 sm:p-4">
+          <div className="w-full max-w-xs sm:max-w-lg mx-auto bg-gradient-to-br from-[#0f171e] to-[#1a242f] rounded-xl sm:rounded-2xl p-3 sm:p-6 overflow-y-auto max-h-screen border border-white/10">
+            <div className="text-center mb-4 sm:mb-8">
+              <div className="w-12 h-12 sm:w-24 sm:h-24 bg-red-500 rounded-full flex items-center justify-center mx-auto mb-3 sm:mb-6 shadow-2xl">
+                <svg className="w-6 h-6 sm:w-12 sm:h-12 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.732 16.5c-.77.833.192 2.5 1.732 2.5z" />
+                </svg>
+              </div>
+              
+              <h1 className="text-lg sm:text-4xl font-bold text-white mb-2 sm:mb-4">
+                No Movie Available
+              </h1>
+              
+              <p className="text-sm sm:text-xl text-gray-300 mb-1 sm:mb-2">
+                This movie is currently unavailable
+              </p>
+              
+              <p className="text-gray-400 mb-3 sm:mb-6 text-xs sm:text-base px-1 sm:px-2">
+                The movie you're trying to watch is not available at the moment. Please try again later or contact support.
+              </p>
+            </div>
+
+            <div className="flex flex-col gap-2 sm:gap-4 w-full">
+              <button
+                onClick={() => window.history.back()}
+                className="w-full bg-gradient-to-r from-[#00a8e1] to-[#00d4ff] text-white py-3 px-6 rounded-lg font-bold text-base hover:from-[#0098d1] hover:to-[#00c4ef] transition-all duration-300 shadow-2xl"
+              >
+                Go Back
+              </button>
+            </div>
+          </div>
         </div>
       )}
     </div>

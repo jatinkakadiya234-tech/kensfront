@@ -267,7 +267,7 @@ const OtpVerification = () => {
                 mb: 3,
               }}
             >
-              Enter the 6-digit code sent to {phone || email}
+              Enter the 6-digit code sent to { email}
             </Typography>
           </Box>
 
