@@ -173,9 +173,9 @@ export default function SubscriptionsScreen() {
                 ) : (
                     <>
                         <div className="mt-6">
-                            <div className="flex flex-col md:flex-row md:space-x-6 gap-6">
+                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
                                 {Plans.map((plan, index) => (
-                                    <div className="flex-1 mb-4 md:mb-0" key={index}>
+                                    <div className="mb-4 md:mb-0" key={index}>
                                         <div className={`relative bg-gradient-to-b from-[#0f2027] to-[#2c5364] rounded-2xl p-6 h-full flex flex-col shadow-lg border border-[#2a4a5e] ${plan._id ? 'ring-2 ring-[#4facfe]' : ''}`}>
                                             {plan.tag && (
                                                 <div className="absolute top-4 right-4">

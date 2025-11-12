@@ -22,7 +22,9 @@ const VideoPlayer = ({
   onPreviousEpisode,
   hasNextEpisode = false,
   hasPreviousEpisode = false,
-  episodeTitle = ""
+  episodeTitle = "",
+  onFullscreenChange,
+  isPremium = false
 }) => {
   const videoRef = useRef(null);
   const containerRef = useRef(null);
@@ -50,6 +52,7 @@ const VideoPlayer = ({
   const [is2xSpeed, setIs2xSpeed] = useState(false);
   const [showVolumeIndicator, setShowVolumeIndicator] = useState(false);
   const [lastTap, setLastTap] = useState(0);
+  const [showPremiumPopup, setShowPremiumPopup] = useState(false);
 
   const controlsTimeoutRef = useRef(null);
   const longPressTimerRef = useRef(null);
@@ -100,6 +103,26 @@ const VideoPlayer = ({
       // Auto-enter fullscreen on play
       if (!isFullscreen) {
         setTimeout(() => toggleFullscreen(), 100);
+      }
+      
+      // Start 5-second timer for non-premium users
+      if (!isPremium) {
+        setTimeout(() => {
+          video.pause();
+          setShowPremiumPopup(true);
+          // Exit fullscreen when popup shows
+          if (isFullscreen) {
+            if (document.exitFullscreen) {
+              document.exitFullscreen();
+            } else if (document.webkitExitFullscreen) {
+              document.webkitExitFullscreen();
+            } else if (document.mozCancelFullScreen) {
+              document.mozCancelFullScreen();
+            } else if (document.msExitFullscreen) {
+              document.msExitFullscreen();
+            }
+          }
+        }, 10000); // 10 seconds
       }
     };
     const handlePause = () => setIsPlaying(false);
@@ -241,6 +264,11 @@ const VideoPlayer = ({
         element.style.width = '';
         element.style.height = '';
         element.style.zIndex = '';
+        
+        // Notify parent component
+        if (onFullscreenChange) {
+          onFullscreenChange(false);
+        }
       }
       
       // Unlock orientation
@@ -257,6 +285,11 @@ const VideoPlayer = ({
                      document.mozFullScreenElement || 
                      document.msFullscreenElement);
       setIsFullscreen(isFS);
+      
+      // Notify parent component about fullscreen change
+      if (onFullscreenChange) {
+        onFullscreenChange(isFS);
+      }
     };
 
     // Listen to all fullscreen events
@@ -271,7 +304,7 @@ const VideoPlayer = ({
       document.removeEventListener('mozfullscreenchange', handleFullscreenChange);
       document.removeEventListener('MSFullscreenChange', handleFullscreenChange);
     };
-  }, []);
+  }, [onFullscreenChange]);
 
   const handleSpeedChange = (speed) => {
     if (videoRef.current) {
@@ -496,6 +529,101 @@ const VideoPlayer = ({
           </div>
         </div>
       </div>
+      
+      {/* Premium Popup */}
+      {showPremiumPopup && (
+        <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-gradient-to-br from-[#0f171e] to-[#1a242f]">
+          <div className="w-full h-full flex flex-col items-center justify-center p-6 max-w-2xl mx-auto">
+            
+            {/* Prime Logo */}
+            <div className="mb-8">
+              <div className="flex items-center gap-3">
+                <div className="w-32 h-12 bg-gradient-to-r from-[#00a8e1] to-[#00d4ff] rounded-lg flex items-center justify-center shadow-2xl">
+                  <span className="text-white font-bold text-lg">kensdrive</span>
+                </div>
+                <div>
+                  <h2 className="text-white text-2xl font-bold">kensdrive Video</h2>
+                  <p className="text-gray-400 text-sm">Exclusive content</p>
+                </div>
+              </div>
+            </div>
+
+            {/* Main Content */}
+            <div className="text-center mb-8">
+              <div className="w-24 h-24 bg-yellow-500 rounded-full flex items-center justify-center mx-auto mb-6 shadow-2xl">
+                <svg className="w-12 h-12 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+                </svg>
+              </div>
+              
+              <h1 className="text-4xl font-bold text-white mb-4">
+                Premium Required
+              </h1>
+              
+              <p className="text-xl text-gray-300 mb-2">
+                Upgrade to continue watching
+              </p>
+              
+              <p className="text-gray-400 mb-6 max-w-md mx-auto">
+                Enjoy unlimited access to all our premium content without any interruptions. 
+                Start your free trial today!
+              </p>
+
+              {/* Features */}
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8 max-w-2xl mx-auto">
+                <div className="text-center p-4 bg-white/5 rounded-lg border border-white/10">
+                  <div className="w-8 h-8 bg-[#00a8e1] rounded-full flex items-center justify-center mx-auto mb-2">
+                    <svg className="w-4 h-4 text-white" fill="currentColor" viewBox="0 0 20 20">
+                      <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                    </svg>
+                  </div>
+                  <p className="text-white text-sm">HD Quality</p>
+                </div>
+                
+                <div className="text-center p-4 bg-white/5 rounded-lg border border-white/10">
+                  <div className="w-8 h-8 bg-[#00a8e1] rounded-full flex items-center justify-center mx-auto mb-2">
+                    <svg className="w-4 h-4 text-white" fill="currentColor" viewBox="0 0 20 20">
+                      <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                    </svg>
+                  </div>
+                  <p className="text-white text-sm">No Ads</p>
+                </div>
+                
+                <div className="text-center p-4 bg-white/5 rounded-lg border border-white/10">
+                  <div className="w-8 h-8 bg-[#00a8e1] rounded-full flex items-center justify-center mx-auto mb-2">
+                    <svg className="w-4 h-4 text-white" fill="currentColor" viewBox="0 0 20 20">
+                      <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                    </svg>
+                  </div>
+                  <p className="text-white text-sm">All Content</p>
+                </div>
+              </div>
+            </div>
+
+            {/* Action Buttons */}
+            <div className="flex flex-col sm:flex-row gap-4 w-full max-w-md">
+              <button
+                onClick={() => window.location.href = '/subscription'}
+                className="flex-1 bg-gradient-to-r from-[#00a8e1] to-[#00d4ff] text-white py-4 px-8 rounded-lg font-bold text-lg hover:from-[#0098d1] hover:to-[#00c4ef] transition-all duration-300 shadow-2xl"
+              >
+                Get Premium 
+              </button>
+              
+              <button
+                onClick={() => setShowPremiumPopup(false)}
+                className="flex-1 bg-white/10 text-white py-4 px-8 rounded-lg font-semibold text-lg border border-white/20 hover:bg-white/20 transition-all duration-300"
+              >
+                Maybe Later
+              </button>
+            </div>
+
+            {/* Footer Text */}
+            <p className="text-gray-500 text-sm mt-8 text-center">
+              First month free, then $9.99/month. Cancel anytime.
+            </p>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
