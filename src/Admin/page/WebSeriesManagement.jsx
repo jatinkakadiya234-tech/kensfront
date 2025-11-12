@@ -105,6 +105,12 @@ const WebSeriesManagement = () => {
     return '';
   };
 
+  const generateWatchUrl = (episode, quality, isPremium = false) => {
+    const videoUrl = getQualitySourceUrl(episode, quality);
+    if (!videoUrl) return '';
+    return `${WATCH_BASE}${encodeURIComponent(videoUrl)}&premium=${isPremium}`;
+  };
+
   const [copiedKeys, setCopiedKeys] = useState({});
   
   // Fixed copy function

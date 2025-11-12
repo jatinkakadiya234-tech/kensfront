@@ -66,10 +66,19 @@ export default function MovieDetailsScreen() {
   // ✅ Premium check
   useEffect(() => {
     try {
-      const userInfo = localStorage.getItem("userinfo");
-      if (userInfo) {
-        const user = JSON.parse(userInfo);
-        setIsPremium(!!user.isPremium);
+      // Check URL parameter first
+      const params = new URLSearchParams(window.location.search);
+      const premiumParam = params.get("premium");
+      
+      if (premiumParam === "true") {
+        setIsPremium(true);
+      } else {
+        // Fallback to localStorage
+        const userInfo = localStorage.getItem("userinfo");
+        if (userInfo) {
+          const user = JSON.parse(userInfo);
+          setIsPremium(!!user.isPremium);
+        }
       }
     } catch (error) {
       console.error("Error checking premium status:", error);

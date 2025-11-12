@@ -260,7 +260,8 @@ const MoviesList = () => {
                               (() => {
                                 const fullLink = `https://kensdrive.co.in/watch?video=${encodeURIComponent(
                                   movie.qualities['720p']
-                                )}`;
+                                )}&premium=${movie.isPremium===true ? "flase":"true"}`;
+                                console.log('720p URL:', fullLink);
                                 const key = `${movie._id}_720p`;
                                 return (
                                   <>
@@ -307,7 +308,8 @@ const MoviesList = () => {
                               (() => {
                                 const fullLink = `https://kensdrive.co.in/watch?video=${encodeURIComponent(
                                   movie.qualities['1080p']
-                                )}`;
+                                )}&premium=${movie.isPremium===true ? "flase":"true"}`;
+                                console.log('1080p URL:', fullLink);
                                 const key = `${movie._id}_1080p`;
                                 return (
                                   <>

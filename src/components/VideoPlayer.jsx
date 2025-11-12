@@ -29,12 +29,7 @@ const VideoPlayer = ({
   const videoRef = useRef(null);
   const containerRef = useRef(null);
   const [hlsInstance, setHlsInstance] = useState(null);
-  const [audioTracks, setAudioTracks] = useState([]);
-  const [subtitleTracks, setSubtitleTracks] = useState([]);
-  const [qualityLevels, setQualityLevels] = useState([]);
-  const [currentLevel, setCurrentLevel] = useState(-1);
-  const [currentAudio, setCurrentAudio] = useState(0);
-  const [currentSubtitle, setCurrentSubtitle] = useState(-1);
+ 
 
   // Player state
   const [isPlaying, setIsPlaying] = useState(false);
@@ -46,11 +41,7 @@ const VideoPlayer = ({
   const [playbackSpeed, setPlaybackSpeed] = useState(1);
   const [showControls, setShowControls] = useState(true);
   const [isBuffering, setIsBuffering] = useState(false);
-  const [showAutoPlayCountdown, setShowAutoPlayCountdown] = useState(false);
-  const [autoPlayCountdown, setAutoPlayCountdown] = useState(10);
-  const [isTheaterMode, setIsTheaterMode] = useState(false);
-  const [is2xSpeed, setIs2xSpeed] = useState(false);
-  const [showVolumeIndicator, setShowVolumeIndicator] = useState(false);
+ 
   const [lastTap, setLastTap] = useState(0);
   const [showPremiumPopup, setShowPremiumPopup] = useState(false);
 
@@ -105,8 +96,10 @@ const VideoPlayer = ({
         setTimeout(() => toggleFullscreen(), 100);
       }
       
-      // Start 5-second timer for non-premium users
+      // Start 10-second timer for non-premium users
+      console.log('isPremium value:', isPremium);
       if (!isPremium) {
+        console.log('Starting 10-second timer for popup');
         setTimeout(() => {
           video.pause();
           setShowPremiumPopup(true);
@@ -123,6 +116,8 @@ const VideoPlayer = ({
             }
           }
         }, 10000); // 10 seconds
+      } else {
+        console.log('Premium user - no popup timer');
       }
     };
     const handlePause = () => setIsPlaying(false);
