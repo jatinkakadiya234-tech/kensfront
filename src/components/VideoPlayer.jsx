@@ -536,17 +536,7 @@ const VideoPlayer = ({
           <div className="w-full max-w-xs sm:max-w-lg mx-auto bg-gradient-to-br from-[#0f171e] to-[#1a242f] rounded-xl sm:rounded-2xl p-3 sm:p-6 overflow-y-auto max-h-screen">
             
             {/* Prime Logo */}
-            <div className="mb-4 sm:mb-8">
-              <div className="flex flex-col sm:flex-row items-center gap-2 sm:gap-3">
-                <div className="w-20 sm:w-32 h-8 sm:h-12 bg-gradient-to-r from-[#00a8e1] to-[#00d4ff] rounded-lg flex items-center justify-center shadow-2xl">
-                  <span className="text-white font-bold text-xs sm:text-lg">kensdrive</span>
-                </div>
-                <div className="text-center sm:text-left">
-                  <h2 className="text-white text-sm sm:text-2xl font-bold">kensdrive Video</h2>
-                  <p className="text-gray-400 text-xs sm:text-sm">Exclusive content</p>
-                </div>
-              </div>
-            </div>
+          
 
             {/* Main Content */}
             <div className="text-center mb-4 sm:mb-8">
@@ -609,12 +599,7 @@ const VideoPlayer = ({
                 Get Premium 
               </button>
               
-              <button
-                onClick={() => setShowPremiumPopup(false)}
-                className="w-full bg-white/10 text-white py-3 px-6 rounded-lg font-semibold text-base border border-white/20 hover:bg-white/20 transition-all duration-300"
-              >
-                Maybe Later
-              </button>
+             
             </div>
 
             {/* Footer Text */}
