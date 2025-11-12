@@ -604,14 +604,14 @@ const VideoPlayer = ({
             <div className="flex flex-col gap-2 sm:gap-4 w-full">
               <button
                 onClick={() => window.location.href = '/subscription'}
-                className="w-full bg-gradient-to-r from-[#00a8e1] to-[#00d4ff] text-white py-2 sm:py-4 px-4 sm:px-8 rounded-lg font-bold text-sm sm:text-lg hover:from-[#0098d1] hover:to-[#00c4ef] transition-all duration-300 shadow-2xl"
+                className="w-full bg-gradient-to-r from-[#00a8e1] to-[#00d4ff] text-white py-3 px-6 rounded-lg font-bold text-base hover:from-[#0098d1] hover:to-[#00c4ef] transition-all duration-300 shadow-2xl"
               >
                 Get Premium 
               </button>
               
               <button
                 onClick={() => setShowPremiumPopup(false)}
-                className="w-full bg-white/10 text-white py-2 sm:py-4 px-4 sm:px-8 rounded-lg font-semibold text-sm sm:text-lg border border-white/20 hover:bg-white/20 transition-all duration-300"
+                className="w-full bg-white/10 text-white py-3 px-6 rounded-lg font-semibold text-base border border-white/20 hover:bg-white/20 transition-all duration-300"
               >
                 Maybe Later
               </button>
